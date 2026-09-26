@@ -1,0 +1,12 @@
+{
+  "name": "lidon",
+  "description": "LidOn — keep your Mac running with the lid closed",
+  "owner": { "name": "LidOn contributors" },
+  "plugins": [
+    {
+      "name": "lidon",
+      "source": "./plugin",
+      "description": "Let Claude keep your MacBook awake with the lid closed during long work, and notify you when it's done."
+    }
+  ]
+}

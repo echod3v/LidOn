@@ -1,0 +1,26 @@
+cask "lidon" do
+  version "__VERSION__"
+  sha256 "__SHA256__"
+
+  url "https://github.com/__REPO__/releases/download/v#{version}/LidOn-#{version}.zip"
+  name "LidOn"
+  desc "Keep your MacBook and coding agents running with the lid closed"
+  homepage "https://github.com/__REPO__"
+
+  depends_on macos: ">= :sonoma"
+
+  app "LidOn.app"
+  binary "#{appdir}/LidOn.app/Contents/Helpers/lidon"
+
+  # 서명되지 않은 무료 앱이라 Gatekeeper 격리 속성을 제거한다
+  postflight do
+    system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/LidOn.app"]
+  end
+
+  uninstall quit: "dev.lidon.LidOn"
+
+  zap trash: [
+    "~/Library/Application Support/LidOn",
+    "~/Library/Preferences/dev.lidon.LidOn.plist",
+  ]
+end
