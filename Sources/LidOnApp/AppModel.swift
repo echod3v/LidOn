@@ -187,32 +187,24 @@ final class AppModel: ObservableObject {
     /// 키의 실제 눌림 상태는 입력 모니터링 권한 없이도 정확하다.
     private static func fnKeyDown() -> Bool { fnKeyCodes.contains(where: keyDown) }
 
-    /// Fn 제스처 도중 다른 입력이 있었는가: 다른 키(수정 키 포함), 마우스 이동·클릭, 스크롤
-    private static func otherInput(since anchor: NSPoint) -> (Bool, [CGKeyCode]) {
+    /// Fn 제스처 도중 다른 입력이 있었는가: 다른 키(수정 키 포함), 클릭, 스크롤.
+    /// 마우스 이동은 허용한다 (뚜껑을 닫다가 트랙패드를 스치는 일이 흔하다).
+    private static func otherInput() -> (Bool, [CGKeyCode]) {
         var keys: [CGKeyCode] = []
         for key in CGKeyCode(0)..<256 where !fnKeyCodes.contains(key) && key != capsLock && keyDown(key) { keys.append(key) }
-        let p = NSEvent.mouseLocation
-        let moved = hypot(p.x - anchor.x, p.y - anchor.y) > 6
         let clicked = NSEvent.pressedMouseButtons != 0
         let scrolled = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .scrollWheel) < 0.15
-        return (!keys.isEmpty || moved || clicked || scrolled, keys)
+        return (!keys.isEmpty || clicked || scrolled, keys)
     }
-
-    /// Fn 제스처가 시작될 때의 마우스 위치 (이만큼 움직이면 취소)
-    private var fnMouseAnchor: NSPoint?
 
     private func tick(power: PowerStatus? = nil) {
         let now = Date()
         let fnKey = settings.fnGesture && Self.fnKeyDown()
         var interrupted = false
         if settings.fnGesture && (fnKey || engine.fnGestureActive(now: now)) {
-            let anchor = fnMouseAnchor ?? NSEvent.mouseLocation
-            fnMouseAnchor = anchor
-            let (other, keys) = Self.otherInput(since: anchor)
+            let (other, keys) = Self.otherInput()
             interrupted = other
             FnDiagnostics.record(fnKey: fnKey, otherKeys: keys, interrupted: other)
-        } else {
-            fnMouseAnchor = nil
         }
         let input = EngineInput(now: now, fnDown: fnKey, fnInterrupted: interrupted, lidClosed: lid.isLidClosed, power: power,
                                 requests: sortedHolds.map(\.label))
@@ -274,7 +266,7 @@ final class AppModel: ObservableObject {
                     overlay.countdown(grace, subtitle: L("Fn released — close within %d seconds to keep running", Int(grace)))
                 }
             case .fnCancelled:
-                overlay.cancel(title: L("Cancelled"), subtitle: L("Another key or the mouse was used"))
+                overlay.cancel(title: L("Cancelled"), subtitle: L("Another key or a click was used"))
             case .sealed:
                 overlay.hide(animated: false)
                 lastMessage = nil

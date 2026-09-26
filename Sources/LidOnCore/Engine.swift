@@ -20,7 +20,7 @@ public struct EngineInput: Sendable {
     public var now: Date
     /// Fn(🌐) 키 자체가 눌려 있는가
     public var fnDown: Bool
-    /// Fn 제스처 도중(누르는 중·유예 시간) 다른 키, 마우스 이동·클릭·스크롤이 있었는가 → 즉시 취소
+    /// Fn 제스처 도중(누르는 중·유예 시간) 다른 키, 클릭, 스크롤이 있었는가 → 즉시 취소 (마우스 이동은 허용)
     public var fnInterrupted: Bool
     public var lidClosed: Bool
     /// 새로 읽은 전원 상태 (없으면 이전 값 유지)

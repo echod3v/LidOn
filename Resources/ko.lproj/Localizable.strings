@@ -145,4 +145,4 @@
 "Restart Now" = "지금 다시 시작";
 "Fn released — close within %d seconds to keep running" = "Fn을 뗐어도 %d초 안에 닫으면 계속 실행돼요";
 "Cancelled" = "취소됨";
-"Another key or the mouse was used" = "다른 키나 마우스를 써서 취소했어요";
+"Another key or a click was used" = "다른 키를 누르거나 클릭해서 취소했어요";
