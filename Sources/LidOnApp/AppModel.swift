@@ -38,6 +38,8 @@ final class AppModel: ObservableObject {
     private var powerObserver: PowerSourceObserver?
     /// 뚜껑이 닫혀 실행 중일 때 1초마다 커널 상태를 다시 적용하는 타이머 (Fn 감지 타이머는 이때 멈춰 있다)
     private var sealTimer: Timer?
+    /// 전원 연결로 macOS가 재우려는 것을 붙잡았다고 이번 세션에서 이미 알렸는가
+    private var warnedPowerHold = false
     private let overlay = OverlayController()
     private let hotkey = HotKey()
     private var ipc: IPCServer?
@@ -312,6 +314,7 @@ final class AppModel: ObservableObject {
                                       maxBatteryTemp: engine.power.batteryTempC, maxThermal: engine.power.thermal)
                 lastMessage = L("Did not keep running: %@", Fmt.reason(r))
             case .ended(let record):
+                warnedPowerHold = false
                 EventLog.write("ended: \(record.reason.rawValue)")
                 sessionEnded(record)
             }
@@ -378,6 +381,17 @@ final class AppModel: ObservableObject {
             EventLog.write("macOS tried to sleep after a power/display change — keeping it awake")
             lastAssert = .distantPast
             apply()
+            // 이 상태(다크 웨이크)는 전원이 연결된 동안만 버틸 수 있다 — 한 번 알려 둔다
+            if !warnedPowerHold {
+                warnedPowerHold = true
+                let title = L("Power connected with the lid closed")
+                let body = L("The Mac keeps running while it's plugged in, but it will sleep if you unplug it. Open and close the lid to fully restore.")
+                if settings.notifyLocal { Notifier.local(title: title, body: body) }
+                if settings.webhookKind != .none {
+                    Notifier.webhook(kind: settings.webhookKind, url: settings.webhookURL, title: title, body: body,
+                                     record: nil) { _ in }
+                }
+            }
             return
         }
         if engine.isSealed {

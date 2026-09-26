@@ -146,3 +146,5 @@
 "Fn released — close within %d seconds to keep running" = "Fn을 뗐어도 %d초 안에 닫으면 계속 실행돼요";
 "Cancelled" = "취소됨";
 "Another key or a click was used" = "다른 키를 누르거나 클릭해서 취소했어요";
+"Power connected with the lid closed" = "뚜껑이 닫힌 채 전원이 연결됐어요";
+"The Mac keeps running while it's plugged in, but it will sleep if you unplug it. Open and close the lid to fully restore." = "전원이 연결된 동안은 계속 실행돼요. 전원을 빼면 Mac이 잠들어요. 뚜껑을 열었다 다시 닫으면 원래대로 돌아가요.";

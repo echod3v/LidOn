@@ -144,6 +144,12 @@ The Fn gesture reads key state, which macOS allows without permissions.
 It's a free side project without an Apple Developer account yet. The Homebrew cask and the install script clear the
 quarantine flag for you. The source is all here.
 
+**What if I plug in the charger or a display after closing the lid?**
+macOS re-checks the lid when power or displays change and pushes the Mac toward sleep. LidOn catches this and keeps
+the Mac running with the screen off for as long as it stays plugged in, and tells you about it. If you then unplug it, the Mac
+sleeps — macOS only lets apps hold that state on power. For long jobs, plug in before closing the lid, or open and close the
+lid again after plugging in.
+
 **Will a macOS update break it?**
 It relies on an undocumented interface, so it could. Please test again after major macOS updates and
 [open an issue](https://github.com/jayden0903/LidOn/issues) if something changes.
