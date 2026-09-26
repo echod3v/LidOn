@@ -43,6 +43,8 @@ public final class LidControl {
     }
 
     public var hasLid: Bool { property("AppleClamshellState") != nil }
+    /// 커널이 지금 뚜껑이 닫혀 있으면 잠들 것으로 보는가 (진단용)
+    public var clamshellCausesSleep: Bool? { property("AppleClamshellCausesSleep") as? Bool }
     public var isLidClosed: Bool { (property("AppleClamshellState") as? Bool) ?? false }
 
     private func property(_ key: String) -> Any? {
@@ -64,17 +66,25 @@ public final class LidControl {
     }
 }
 
-/// 유휴 잠자기 방지 assertion. 프로세스가 죽으면 powerd가 자동으로 해제한다.
-public final class IdleSleepAssertion {
+/// 잠자기 방지 assertion. 프로세스가 죽으면 powerd가 자동으로 해제한다.
+///
+/// - `PreventUserIdleSystemSleep`: 유휴 잠자기를 막는다.
+/// - `PreventSystemSleep`: 뚜껑이 닫힌 채 충전기를 꽂는 등 화면이 잠깐 깨어날 때 macOS가 다시 재우려는 것까지 막는다
+///   (전원이 연결돼 있을 때만 효과가 있다).
+public final class SleepAssertion {
+    private let type: String
     private var id: IOPMAssertionID = 0
 
-    public init() {}
+    public static let idle = kIOPMAssertionTypePreventUserIdleSystemSleep
+    public static let system = kIOPMAssertionTypePreventSystemSleep
+
+    public init(_ type: String) { self.type = type }
 
     public var isHeld: Bool { id != 0 }
 
     public func set(_ on: Bool, reason: String) {
         if on, id == 0 {
-            IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
+            IOPMAssertionCreateWithName(type as CFString,
                                         IOPMAssertionLevel(kIOPMAssertionLevelOn), reason as CFString, &id)
         } else if !on, id != 0 {
             IOPMAssertionRelease(id)

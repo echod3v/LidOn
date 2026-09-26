@@ -33,7 +33,11 @@ final class AppModel: ObservableObject {
 
     let lid = LidControl()
     let watchdog = WatchdogLauncher()
-    private let assertion = IdleSleepAssertion()
+    private let assertion = SleepAssertion(SleepAssertion.idle)
+    private let systemAssertion = SleepAssertion(SleepAssertion.system)
+    private var powerObserver: PowerSourceObserver?
+    /// 뚜껑이 닫혀 실행 중일 때 1초마다 커널 상태를 다시 적용하는 타이머 (Fn 감지 타이머는 이때 멈춰 있다)
+    private var sealTimer: Timer?
     private let overlay = OverlayController()
     private let hotkey = HotKey()
     private var ipc: IPCServer?
@@ -69,6 +73,9 @@ final class AppModel: ObservableObject {
             MainActor.assumeIsolated { self?.tick() }
         }
         restoreState()
+        powerObserver = PowerSourceObserver { [weak self] in
+            MainActor.assumeIsolated { self?.powerSourceChanged() }
+        }
         startIPC()
         applyHotkey()
         if settings.notifyLocal { Notifier.requestPermission() }
@@ -143,6 +150,7 @@ final class AppModel: ObservableObject {
         overlay.hide(animated: false)
         ipc?.stop()
         assertion.set(false, reason: "")
+        systemAssertion.set(false, reason: "")
         lid.setLidSleepDisabled(false)
         watchdog.stop()
     }
@@ -154,6 +162,27 @@ final class AppModel: ObservableObject {
         applyHotkey()
         updateFastTimer()
         apply()
+    }
+
+    private func updateSealTimer(_ needed: Bool) {
+        if needed, sealTimer == nil {
+            sealTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.apply() }
+            }
+            sealTimer?.tolerance = 0.2
+        } else if !needed, let t = sealTimer {
+            t.invalidate()
+            sealTimer = nil
+        }
+    }
+
+    /// 충전기를 꽂거나 빼면 macOS가 뚜껑 상태를 다시 판단한다 → 곧바로 다시 적용한다
+    private func powerSourceChanged() {
+        if engine.isSealed {
+            EventLog.write("power source changed while running: ac=\(PowerReader.read().onAC) causesSleep=\(lid.clamshellCausesSleep.map(String.init) ?? "?")")
+        }
+        lastAssert = .distantPast
+        refresh()
     }
 
     /// Fn 감지가 필요할 때만 빠른 타이머를 돌린다 (뚜껑이 닫혀 있으면 멈춰서 전력을 아낀다)
@@ -238,6 +267,8 @@ final class AppModel: ObservableObject {
             lastAssert = now
         }
         assertion.set(want, reason: "LidOn: keep running with the lid closed")
+        systemAssertion.set(want, reason: "LidOn: keep running with the lid closed")
+        updateSealTimer(want && engine.lidClosed)
         publish()
         saveState()
     }
@@ -267,7 +298,8 @@ final class AppModel: ObservableObject {
                 }
             case .fnCancelled:
                 overlay.cancel(title: L("Cancelled"), subtitle: L("Another key or a click was used"))
-            case .sealed:
+            case .sealed(let t):
+                EventLog.write("running with the lid closed (\(t.map(\.rawValue).sorted().joined(separator: ","))), ac=\(engine.power.onAC)")
                 overlay.hide(animated: false)
                 lastMessage = nil
                 if settings.lockOnClose {
@@ -280,6 +312,7 @@ final class AppModel: ObservableObject {
                                       maxBatteryTemp: engine.power.batteryTempC, maxThermal: engine.power.thermal)
                 lastMessage = L("Did not keep running: %@", Fmt.reason(r))
             case .ended(let record):
+                EventLog.write("ended: \(record.reason.rawValue)")
                 sessionEnded(record)
             }
         }
@@ -337,6 +370,10 @@ final class AppModel: ObservableObject {
     }
 
     private func systemWillSleep() {
+        if engine.isSealed {
+            // 켜져 있는데 잠들었다 — 원인을 찾을 수 있게 남긴다
+            EventLog.write("system sleeping while running: lidDisabled=\(lidSleepDisabled) ac=\(engine.power.onAC) causesSleep=\(lid.clamshellCausesSleep.map(String.init) ?? "?")")
+        }
         overlay.hide(animated: false)
         handle(engine.systemWillSleep(now: Date()))
         apply()
@@ -615,5 +652,16 @@ enum FnDiagnostics {
         } else {
             try? Data(entry.utf8).write(to: url)
         }
+    }
+}
+
+/// 진단 기록: ~/Library/Application Support/LidOn/events.log (최근 200줄만 유지)
+enum EventLog {
+    static func write(_ line: String) {
+        let url = LidOnPaths.supportDir.appendingPathComponent("events.log")
+        let old = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        let lines = (old.split(separator: "\n").map(String.init) + ["\(stamp) \(line)"]).suffix(200)
+        try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
     }
 }

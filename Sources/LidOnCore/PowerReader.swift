@@ -29,3 +29,23 @@ public enum PowerReader {
         return s
     }
 }
+
+/// 전원(충전기 연결·해제)이 바뀌면 메인 스레드에서 알려준다
+public final class PowerSourceObserver {
+    private var source: CFRunLoopSource?
+    private let handler: () -> Void
+
+    public init(_ handler: @escaping () -> Void) {
+        self.handler = handler
+        let ctx = Unmanaged.passUnretained(self).toOpaque()
+        source = IOPSNotificationCreateRunLoopSource({ ctx in
+            guard let ctx else { return }
+            Unmanaged<PowerSourceObserver>.fromOpaque(ctx).takeUnretainedValue().handler()
+        }, ctx)?.takeRetainedValue()
+        if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode) }
+    }
+
+    deinit {
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode) }
+    }
+}
