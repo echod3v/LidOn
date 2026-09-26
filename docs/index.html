@@ -155,7 +155,7 @@ lidon setup cursor</pre>
     <h2>FAQ</h2>
     <details><summary>How is this different from caffeinate or pmset?</summary><p><code>caffeinate</code> prevents idle sleep, but a MacBook still sleeps when the lid closes (unless it's plugged in with an external display). <code>pmset disablesleep 1</code> works but needs sudo, has no safeguards, and stays on until you undo it. LidOn needs no admin rights, turns itself off when the reason is gone, and can be driven by agents.</p></details>
     <details><summary>Does it drain the battery?</summary><p>LidOn itself idles at roughly 0.1–0.3 % CPU, and animations only run while its windows are visible. The work you keep running is what uses power — plug in for long jobs.</p></details>
-    <details><summary>What permissions does it need?</summary><p>None of Accessibility, Input Monitoring, Screen Recording or an admin password. It asks for notifications, which is optional.</p></details>
+    <details><summary>What permissions does it need?</summary><p>None of Accessibility, Input Monitoring or Screen Recording. Installation asks for your password once, to allow exactly <code>pmset -a disablesleep 0|1</code> so plugging in a charger or display with the lid closed can't put the Mac to sleep. Notifications are optional.</p></details>
     <details><summary>Why isn't it notarized?</summary><p>It's a free project without an Apple Developer account yet. Homebrew and the install script clear the quarantine flag; all the source is on GitHub.</p></details>
     <details><summary>Could a macOS update break it?</summary><p>It uses an undocumented power-management interface, so it could. Test after major updates and open an issue if anything changes.</p></details>
   </section>

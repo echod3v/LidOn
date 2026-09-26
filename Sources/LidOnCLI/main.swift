@@ -20,6 +20,8 @@ USAGE
   lidon notify <message> [--title <t>]   Notify the user on this Mac (and phone, if set up)
 
   lidon login-item [on|off|status]       Launch LidOn at login
+  lidon system-setup [--remove]          One-time admin setup so the Mac stays awake even when a charger or
+                                         display is plugged in or out with the lid closed (asks for your password)
 
   lidon mcp                              Run the MCP server for AI agents (stdio)
   lidon setup claude|codex|cursor|all    Connect an agent to LidOn (MCP server + Claude Code skill)
@@ -80,6 +82,10 @@ case "status":
         print(String(decoding: try! e.encode(s), as: UTF8.self))
     } else {
         print(s.summary)
+        if !StrongMode.isInstalled {
+            print("  setup:   not finished — run `lidon system-setup` once so plugging in a charger or display")
+            print("           with the lid closed doesn't put the Mac to sleep")
+        }
     }
 
 case "on":
@@ -158,6 +164,25 @@ case "login-item":
     let r = request(IPCRequest(cmd: "login-item", label: action))
     print(r.message ?? "")
     exit(r.ok ? 0 : 1)
+
+case "system-setup":
+    let remove = args.contains("--remove")
+    let user = option("--user", in: &args) ?? ProcessInfo.processInfo.environment["SUDO_USER"] ?? NSUserName()
+    if getuid() != 0 {
+        // sudo로 자신을 다시 실행한다 (터미널에서 암호를 묻는다)
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+        p.arguments = [cliPath, "system-setup", "--user", user] + (remove ? ["--remove"] : [])
+        do { try p.run() } catch { fail("could not run sudo") }
+        p.waitUntilExit()
+        exit(p.terminationStatus)
+    }
+    guard let script = remove ? StrongMode.uninstallScript : StrongMode.installScript(user: user) else {
+        fail("run this as your own user, not root (or pass --user <name>)")
+    }
+    guard StrongMode.runAsRoot(script) else { fail("could not update \(StrongMode.sudoersPath)") }
+    print(remove ? "✓ Removed \(StrongMode.sudoersPath)"
+                 : "✓ Done. LidOn now keeps the Mac awake even if a charger or display is plugged in or out with the lid closed.")
 
 case "mcp":
     MCPServer.run()

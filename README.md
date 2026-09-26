@@ -35,7 +35,8 @@ or
 curl -fsSL https://raw.githubusercontent.com/jayden0903/LidOn/main/install.sh | bash
 ```
 
-Both install `LidOn.app` into `/Applications` and put the `lidon` command on your `PATH`.
+Both install `LidOn.app` into `/Applications` and put the `lidon` command on your `PATH`. They ask for your Mac password
+once, so LidOn can use the macOS sleep switch while it's running with the lid closed (see the FAQ).
 You can also download the zip from [Releases](https://github.com/jayden0903/LidOn/releases/latest) — LidOn isn't notarized yet,
 so the first time, open **System Settings → Privacy & Security** and click **Open Anyway**.
 
@@ -137,19 +138,21 @@ LidOn itself idles at roughly 0.1–0.3 % CPU. Animations only run while a LidOn
 work you keep running — so plug in for long jobs.
 
 **Does it need special permissions?**
-No Accessibility, Input Monitoring, Screen Recording or admin password (only the optional Stronger mode asks for it once). It asks for notifications (optional).
+No Accessibility, Input Monitoring or Screen Recording. Installation asks for your password once (see below), and LidOn asks for notifications (optional).
 The Fn gesture reads key state, which macOS allows without permissions.
 
 **Why isn't it notarized?**
 It's a free side project without an Apple Developer account yet. The Homebrew cask and the install script clear the
 quarantine flag for you. The source is all here.
 
-**What if I plug in the charger or a display after closing the lid?**
-macOS re-checks the lid when power or displays change and pushes the Mac toward sleep. LidOn catches this and keeps
-the Mac running with the screen off for as long as it stays plugged in, and tells you about it. If you then unplug it, the Mac
-sleeps — macOS only lets apps hold that state on power. To avoid this entirely, turn on *Settings → Safety → Stronger mode*: after you enter your
-administrator password once, LidOn also flips the macOS sleep switch (`pmset disablesleep`) while it's running with the lid
-closed, and turns it back off afterwards (the watchdog does too if LidOn crashes).
+**Why does installation ask for my password?**
+When a charger or display is plugged in or out with the lid closed, macOS re-checks the lid and overrides the setting LidOn
+uses, which would put the Mac to sleep. To prevent that, LidOn also turns on the macOS sleep switch (`pmset disablesleep`)
+while it's running with the lid closed, and turns it off right after — at launch, at quit and from the watchdog too, since the
+setting survives restarts. That switch needs root, so installation adds one sudoers rule (`/etc/sudoers.d/lidon`) that allows
+exactly `pmset -a disablesleep 0` and `1` — nothing else. If you skip it, finish later from the LidOn menu or with
+`lidon system-setup`; until then LidOn keeps the Mac running on power but can't stop it sleeping if you unplug it.
+`brew uninstall` removes the rule, or run `lidon system-setup --remove`.
 
 **Will a macOS update break it?**
 It relies on an undocumented interface, so it could. Please test again after major macOS updates and

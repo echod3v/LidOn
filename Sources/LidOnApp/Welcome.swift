@@ -84,6 +84,8 @@ struct WelcomeView: View {
                     }
                 }
 
+                SystemSetupCard()
+
                 Card(highlighted: model.ui.manualOn) {
                     HStack(spacing: 10) {
                         IconBadge(symbol: model.ui.manualOn ? "bolt.fill" : "bolt", color: model.ui.manualOn ? Theme.teal : .gray, size: 26)

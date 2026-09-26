@@ -1,10 +1,11 @@
 import Foundation
 
-/// 강력 모드: macOS의 잠자기 차단 스위치(`pmset -a disablesleep`)를 LidOn이 실행 중일 때만 켠다.
+/// macOS의 잠자기 차단 스위치(`pmset -a disablesleep`)를 LidOn이 뚜껑 닫힌 채 실행 중일 때만 켠다.
 ///
 /// 기본 방식(`kPMSetClamshellSleepState`)은 powerd와 같은 비트를 나눠 써서, 뚜껑이 닫힌 채 충전기·디스플레이가
 /// 바뀌면 powerd가 비트를 덮어쓰고 Mac이 잠든다. `disablesleep`은 커널이 모든 잠자기를 거부하게 하지만 root가 필요하다.
-/// 그래서 사용자가 한 번 관리자 암호를 넣으면 이 두 명령만 암호 없이 실행하도록 sudoers 규칙을 설치한다.
+/// 그래서 설치할 때(Homebrew·설치 스크립트·`lidon system-setup`·앱의 안내) 관리자 암호를 한 번 받아
+/// 이 두 명령만 암호 없이 실행하도록 sudoers 규칙을 설치한다. 규칙이 없으면 기본 방식으로만 동작한다.
 ///
 /// `disablesleep`은 재부팅 후에도 남으므로, 켤 때 표시 파일을 만들고 앱 시작·종료와 워치독 복구 때 반드시 끈다.
 public enum StrongMode {
@@ -47,12 +48,12 @@ public enum StrongMode {
 
     /// 관리자 권한으로 실행할 설치 스크립트: 문법을 검사한 뒤 root 소유 0440으로 넣는다
     public static func installScript(user: String) -> String? {
-        guard !user.isEmpty, user.allSatisfy({ $0.isLetter || $0.isNumber || "._-".contains($0) }) else { return nil }
+        guard !user.isEmpty, user != "root", user.allSatisfy({ $0.isLetter || $0.isNumber || "._-".contains($0) }) else { return nil }
         let rule = "\(user) ALL=(root) NOPASSWD: \(pmset) -a disablesleep 1, \(pmset) -a disablesleep 0"
         return """
         set -e
         tmp=$(/usr/bin/mktemp)
-        /usr/bin/printf '%s\\n' '# LidOn stronger mode: lets LidOn toggle pmset disablesleep while it runs' '\(rule)' > "$tmp"
+        /usr/bin/printf '%s\\n' '# LidOn: lets LidOn toggle pmset disablesleep while it runs with the lid closed' '\(rule)' > "$tmp"
         /usr/sbin/visudo -cf "$tmp" >/dev/null
         /usr/bin/install -m 0440 -o root -g wheel "$tmp" \(sudoersPath)
         /bin/rm -f "$tmp"
@@ -63,6 +64,9 @@ public enum StrongMode {
     public static var uninstallScript: String {
         "\(pmset) -a disablesleep 0; /bin/rm -f \(sudoersPath)"
     }
+
+    /// root 권한으로 설치·제거 스크립트를 실행한다 (`lidon system-setup`)
+    public static func runAsRoot(_ script: String) -> Bool { run("/bin/sh", ["-c", script]) }
 
     private static func run(_ path: String, _ args: [String]) -> Bool {
         let p = Process()

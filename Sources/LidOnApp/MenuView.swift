@@ -13,6 +13,7 @@ struct MenuView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
+            SystemSetupCard()
             manualCard
             if let h = hint { h.transition(.move(edge: .top).combined(with: .opacity)) }
             stats

@@ -32,5 +32,12 @@ for BIN in /opt/homebrew/bin /usr/local/bin "$HOME/.local/bin"; do
   fi
 done
 
+# 한 번만: 뚜껑이 닫힌 채 충전기·모니터를 꽂거나 빼도 잠들지 않도록 (pmset disablesleep 두 명령만 허용)
+if [ ! -e /etc/sudoers.d/lidon ]; then
+  echo "▸ One-time setup: enter your Mac password so LidOn keeps running even if you plug in a charger"
+  echo "  or display with the lid closed (allows only 'pmset -a disablesleep 0|1')."
+  sudo "$CLI" system-setup --user "$USER" < /dev/tty || echo "  Skipped — you can finish this later from the LidOn menu or with: lidon system-setup"
+fi
+
 open "$DEST/LidOn.app"
 echo "✓ LidOn is running — look for the laptop icon in the menu bar."
