@@ -30,8 +30,18 @@ cask "lidon" do
     end
   end
 
-  uninstall quit:   "dev.lidon.LidOn",
-            delete: "/etc/sudoers.d/lidon"
+  uninstall quit: "dev.lidon.LidOn"
+
+  # Remove the one-time setup rule when LidOn is uninstalled — but not during upgrade/reinstall,
+  # which also run this step (the new version would otherwise ask for the password again).
+  uninstall_postflight do
+    next if caller.any? { |line| line.match?(%r{/cask/(upgrade|reinstall)\.rb}) }
+    next unless File.exist?("/etc/sudoers.d/lidon")
+
+    system_command "/bin/sh",
+                   args: ["-c", "/usr/bin/pmset -a disablesleep 0; /bin/rm -f /etc/sudoers.d/lidon"],
+                   sudo: true
+  end
 
   zap trash: [
     "~/Library/Application Support/LidOn",
