@@ -19,6 +19,8 @@ USAGE
   lidon wait <pid> [--reason <text>]     Keep awake until process <pid> exits
   lidon notify <message> [--title <t>]   Notify the user on this Mac (and phone, if set up)
 
+  lidon login-item [on|off|status]       Launch LidOn at login
+
   lidon mcp                              Run the MCP server for AI agents (stdio)
   lidon setup claude|codex|cursor|all    Connect an agent to LidOn (MCP server + Claude Code skill)
   lidon setup --print                    Print config snippets instead of changing files
@@ -149,6 +151,13 @@ case "notify":
 case "hook":
     // 이전 버전이 설치한 Claude Code 훅이 남아 있어도 조용히 끝낸다 (`lidon setup claude`가 지운다)
     exit(0)
+
+case "login-item":
+    let action = args.first ?? "status"
+    guard ["on", "off", "status"].contains(action) else { fail("usage: lidon login-item [on|off|status]") }
+    let r = request(IPCRequest(cmd: "login-item", label: action))
+    print(r.message ?? "")
+    exit(r.ok ? 0 : 1)
 
 case "mcp":
     MCPServer.run()

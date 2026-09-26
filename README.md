@@ -85,6 +85,7 @@ lidon release <id>                         # 다시 잠들 수 있게
 lidon wait 12345                           # PID 12345 프로세스가 끝날 때까지 켜 두기
 lidon notify "빌드 끝남"                    # Mac + 휴대폰 알림
 lidon on --for 2h / lidon off              # 수동 토글
+lidon login-item on                        # 로그인 시 자동 실행
 lidon status [--json]
 ```
 

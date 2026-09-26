@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CoreGraphics
 import LidOnCore
+import ServiceManagement
 
 /// UI에 보여줄 상태. 실제로 바뀔 때만 게시해서 초당 10번 도는 루프가 화면을 다시 그리지 않게 한다.
 struct UIState: Equatable {
@@ -421,6 +422,18 @@ final class AppModel: ObservableObject {
         case "reveal":
             onReveal?()
             return IPCResponse(ok: true)
+        case "login-item":
+            // lidon login-item on|off|status
+            switch req.label ?? "status" {
+            case "on", "off":
+                if let err = settings.setLaunchAtLogin(req.label == "on") {
+                    return IPCResponse(ok: false, message: "Could not change launch at login: \(err)")
+                }
+            default: break
+            }
+            let status = AppSettings.launchAtLoginStatus
+            if status.hasPrefix("waiting") { SMAppService.openSystemSettingsLoginItems() }
+            return IPCResponse(ok: true, message: "Launch at login: \(status)")
         case "quit":
             DispatchQueue.main.async { NSApp.terminate(nil) }
             return IPCResponse(ok: true, message: "LidOn is quitting")

@@ -66,13 +66,30 @@ final class AppSettings: ObservableObject {
 
     var launchAtLogin: Bool {
         get { SMAppService.mainApp.status == .enabled }
-        set {
-            objectWillChange.send()
-            do {
-                if newValue { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-            } catch {
-                NSLog("LidOn: launch at login failed: \(error)")
-            }
+        set { _ = setLaunchAtLogin(newValue) }
+    }
+
+    /// 로그인 시 자동 실행을 켜거나 끈다. 실패하면 이유를 돌려준다.
+    @discardableResult
+    func setLaunchAtLogin(_ on: Bool) -> String? {
+        objectWillChange.send()
+        do {
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            return nil
+        } catch {
+            NSLog("LidOn: launch at login failed: \(error)")
+            return error.localizedDescription
+        }
+    }
+
+    /// 사람이 읽을 상태 (CLI용, 영어)
+    static var launchAtLoginStatus: String {
+        switch SMAppService.mainApp.status {
+        case .enabled: return "on"
+        case .requiresApproval: return "waiting for approval in System Settings → General → Login Items"
+        case .notRegistered: return "off"
+        case .notFound: return "unavailable (move LidOn to the Applications folder)"
+        @unknown default: return "unknown"
         }
     }
 }
