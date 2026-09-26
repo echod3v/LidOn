@@ -33,6 +33,7 @@ public enum Watchdog {
 
         func restore(_ why: String) {
             let ok = lid.setLidSleepDisabled(false)
+            StrongMode.restoreIfNeeded()
             log("restored lid sleep (\(why), ok=\(ok))")
         }
         func restoreAndExit(_ why: String) -> Never {

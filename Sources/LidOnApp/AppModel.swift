@@ -40,6 +40,8 @@ final class AppModel: ObservableObject {
     private var sealTimer: Timer?
     /// 전원 연결로 macOS가 재우려는 것을 붙잡았다고 이번 세션에서 이미 알렸는가
     private var warnedPowerHold = false
+    /// 강력 모드로 macOS 잠자기 차단 스위치를 켜 두었는가
+    private var strongActive = false
     private let overlay = OverlayController()
     private let hotkey = HotKey()
     private var ipc: IPCServer?
@@ -65,6 +67,7 @@ final class AppModel: ObservableObject {
 
         // 이전 실행이 비정상 종료됐을 수 있으므로 항상 기본 상태에서 시작
         lid.setLidSleepDisabled(false)
+        StrongMode.restoreIfNeeded()
         engine = Engine(config: settings.engineConfig, lidClosed: lid.isLidClosed)
 
         settings.onChange = { [weak self] in
@@ -153,6 +156,7 @@ final class AppModel: ObservableObject {
         ipc?.stop()
         assertion.set(false, reason: "")
         systemAssertion.set(false, reason: "")
+        if strongActive { StrongMode.set(false) }
         lid.setLidSleepDisabled(false)
         watchdog.stop()
     }
@@ -270,6 +274,13 @@ final class AppModel: ObservableObject {
         }
         assertion.set(want, reason: "LidOn: keep running with the lid closed")
         systemAssertion.set(want, reason: "LidOn: keep running with the lid closed")
+        // 강력 모드: 뚜껑이 닫혀 실행 중인 동안만 macOS 잠자기 차단 스위치를 켠다
+        let strong = want && engine.lidClosed && StrongMode.isInstalled
+        if strong != strongActive {
+            let ok = StrongMode.set(strong)
+            strongActive = strong && ok
+            EventLog.write("stronger mode \(strong ? "on" : "off") (ok=\(ok))")
+        }
         updateSealTimer(want && engine.lidClosed)
         publish()
         saveState()
@@ -377,12 +388,12 @@ final class AppModel: ObservableObject {
         // (뚜껑이 닫힌 채 충전기·디스플레이를 연결). 이 시점은 아직 다크 웨이크라 프로그램이 돌고 있다.
         // 비트를 다시 켜고 시스템 잠자기 방지(전원 연결 시 유효)를 유지하면 커널이 실제 잠자기를 거부한다.
         let reason = lid.lastSleepReason
-        if engine.isSealed, engine.lidClosed, reason == "Clamshell Sleep", PowerReader.read().onAC {
+        if engine.isSealed, engine.lidClosed, reason == "Clamshell Sleep", PowerReader.read().onAC || strongActive {
             EventLog.write("macOS tried to sleep after a power/display change — keeping it awake")
             lastAssert = .distantPast
             apply()
             // 이 상태(다크 웨이크)는 전원이 연결된 동안만 버틸 수 있다 — 한 번 알려 둔다
-            if !warnedPowerHold {
+            if !warnedPowerHold && !strongActive {
                 warnedPowerHold = true
                 let title = L("Power connected with the lid closed")
                 let body = L("The Mac keeps running while it's plugged in, but it will sleep if you unplug it. Open and close the lid to fully restore.")

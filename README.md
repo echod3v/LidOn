@@ -137,7 +137,7 @@ LidOn itself idles at roughly 0.1–0.3 % CPU. Animations only run while a LidOn
 work you keep running — so plug in for long jobs.
 
 **Does it need special permissions?**
-No Accessibility, Input Monitoring, Screen Recording or admin password. It asks for notifications (optional).
+No Accessibility, Input Monitoring, Screen Recording or admin password (only the optional Stronger mode asks for it once). It asks for notifications (optional).
 The Fn gesture reads key state, which macOS allows without permissions.
 
 **Why isn't it notarized?**
@@ -147,8 +147,9 @@ quarantine flag for you. The source is all here.
 **What if I plug in the charger or a display after closing the lid?**
 macOS re-checks the lid when power or displays change and pushes the Mac toward sleep. LidOn catches this and keeps
 the Mac running with the screen off for as long as it stays plugged in, and tells you about it. If you then unplug it, the Mac
-sleeps — macOS only lets apps hold that state on power. For long jobs, plug in before closing the lid, or open and close the
-lid again after plugging in.
+sleeps — macOS only lets apps hold that state on power. To avoid this entirely, turn on *Settings → Safety → Stronger mode*: after you enter your
+administrator password once, LidOn also flips the macOS sleep switch (`pmset disablesleep`) while it's running with the lid
+closed, and turns it back off afterwards (the watchdog does too if LidOn crashes).
 
 **Will a macOS update break it?**
 It relies on an undocumented interface, so it could. Please test again after major macOS updates and

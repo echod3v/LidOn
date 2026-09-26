@@ -148,3 +148,10 @@
 "Another key or a click was used" = "다른 키를 누르거나 클릭해서 취소했어요";
 "Power connected with the lid closed" = "뚜껑이 닫힌 채 전원이 연결됐어요";
 "The Mac keeps running while it's plugged in, but it will sleep if you unplug it. Open and close the lid to fully restore." = "전원이 연결된 동안은 계속 실행돼요. 전원을 빼면 Mac이 잠들어요. 뚜껑을 열었다 다시 닫으면 원래대로 돌아가요.";
+"Stronger mode" = "강력 모드";
+"On" = "켜짐";
+"Turn off" = "끄기";
+"Turn on…" = "켜기…";
+"Unsupported user name" = "지원하지 않는 사용자 이름이에요";
+"Something went wrong" = "문제가 생겼어요";
+"Keeps the Mac awake even if you plug in or unplug the charger or a display after closing the lid. Asks for your administrator password once so LidOn can use the macOS sleep switch (pmset disablesleep) — only while it's running with the lid closed." = "뚜껑을 닫은 뒤 충전기나 모니터를 꽂거나 빼도 Mac이 잠들지 않아요. 관리자 암호를 한 번 입력하면, LidOn이 뚜껑 닫힌 채 실행 중일 때만 macOS 잠자기 차단 스위치(pmset disablesleep)를 켜요.";

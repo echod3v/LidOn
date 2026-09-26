@@ -158,8 +158,54 @@ struct SafetyTab: View {
             } footer: {
                 Footnote("Even if every safeguard is off, a watchdog restores normal sleep if LidOn crashes or the Mac reaches a critical temperature. Never run a closed Mac inside a bag.")
             }
+            StrongModeSection()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// 강력 모드: 관리자 암호를 한 번 넣으면 실행 중에 macOS 잠자기 차단 스위치(pmset disablesleep)를 쓴다
+private struct StrongModeSection: View {
+    @State private var installed = StrongMode.isInstalled
+    @State private var error: String?
+
+    var body: some View {
+        Section {
+            HStack {
+                SettingLabel("Stronger mode", symbol: "lock.shield.fill", color: Theme.teal)
+                Spacer()
+                if installed {
+                    Text("On").foregroundStyle(.secondary)
+                    Button("Turn off") { run(StrongMode.uninstallScript) }
+                } else {
+                    Button("Turn on…") {
+                        guard let script = StrongMode.installScript(user: NSUserName()) else {
+                            error = L("Unsupported user name")
+                            return
+                        }
+                        run(script)
+                    }
+                }
+            }
+            if let error {
+                Text(error).font(.caption).foregroundStyle(Theme.coral)
+            }
+        } footer: {
+            Footnote("Keeps the Mac awake even if you plug in or unplug the charger or a display after closing the lid. Asks for your administrator password once so LidOn can use the macOS sleep switch (pmset disablesleep) — only while it's running with the lid closed.")
+        }
+    }
+
+    /// 관리자 권한으로 실행 (macOS가 암호를 묻는다)
+    private func run(_ script: String) {
+        let escaped = script.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        var info: NSDictionary?
+        NSAppleScript(source: "do shell script \"\(escaped)\" with administrator privileges")?.executeAndReturnError(&info)
+        if let info, (info[NSAppleScript.errorNumber] as? Int) != -128 {
+            error = info[NSAppleScript.errorMessage] as? String ?? L("Something went wrong")
+        } else {
+            error = nil
+        }
+        installed = StrongMode.isInstalled
     }
 }
 

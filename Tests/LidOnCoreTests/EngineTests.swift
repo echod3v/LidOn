@@ -508,3 +508,18 @@ final class AgentSetupTests: XCTestCase {
         XCTAssertTrue(file.hasPrefix("---\nname: lidon\ndescription: "))
     }
 }
+
+final class StrongModeTests: XCTestCase {
+    func testInstallScriptOnlyAllowsExactPmsetCommands() throws {
+        let script = try XCTUnwrap(StrongMode.installScript(user: "jayden"))
+        XCTAssertTrue(script.contains("jayden ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0"))
+        XCTAssertTrue(script.contains("visudo -cf"), "문법 검사 없이 설치하지 않는다")
+        XCTAssertTrue(script.contains("-m 0440 -o root -g wheel"))
+    }
+
+    func testInstallScriptRejectsUnsafeUserNames() {
+        XCTAssertNil(StrongMode.installScript(user: ""))
+        XCTAssertNil(StrongMode.installScript(user: "a b"))
+        XCTAssertNil(StrongMode.installScript(user: "x' ALL=(ALL) ALL"))
+    }
+}
