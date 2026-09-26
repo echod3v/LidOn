@@ -7,12 +7,12 @@ cask "lidon" do
   desc "Keep your MacBook and coding agents running with the lid closed"
   homepage "https://github.com/__REPO__"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "LidOn.app"
   binary "#{appdir}/LidOn.app/Contents/Helpers/lidon"
 
-  # 서명되지 않은 무료 앱이라 Gatekeeper 격리 속성을 제거한다
+  # Free, unsigned app: remove the Gatekeeper quarantine attribute
   postflight do
     system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/LidOn.app"]
   end

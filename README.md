@@ -180,7 +180,7 @@ Xcode 16 이상(Swift 6 툴체인)이 필요해요.
 
 1. `scripts/set-repo.sh 내아이디/LidOn` — 저장소 이름을 모든 파일에 반영
 2. `git tag v1.0.0 && git push origin v1.0.0` — GitHub Actions가 테스트 → 유니버설 빌드 → Release 생성까지 해요
-3. Homebrew: `내아이디/homebrew-tap` 저장소를 만들고, 릴리스에 첨부된 `lidon.rb`를 `Casks/lidon.rb`로 올려요
+3. Homebrew: 릴리스가 만들어지면 `scripts/update-tap.sh 1.0.0`으로 `echod3v/homebrew-tap`의 cask를 갱신해요
 
 로컬에서 만들려면 `scripts/release.sh 1.0.0`을 실행하세요 (`dist/`에 zip, sha256, cask가 생겨요).
 Apple Developer ID가 생기면 `SIGN_ID="Developer ID Application: …" scripts/build-app.sh`로 정식 서명할 수 있어요.
