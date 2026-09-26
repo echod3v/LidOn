@@ -106,114 +106,267 @@ struct StatusOrb: View {
 
 // MARK: - 맥북 글리프
 
-/// 뚜껑이 닫혔다 열리는 맥북. "뚜껑을 닫아도 된다"를 동작으로 보여 준다.
-/// 알루미늄 테두리, 얇은 검은 베젤, 카메라 노치, 배경화면처럼 빛나는 화면, 힌지, 앞쪽 손가락 홈까지 그린다.
+/// 살짝 위에서 내려다본 맥북. 뚜껑이 접혀 내려가 키보드를 덮었다가 다시 열린다.
+/// 좁은 베젤과 노치, 배경화면 화면, 키보드·트랙패드가 보이는 본체, 앞쪽 손가락 홈까지 그린다.
 struct LaptopGlyph: View {
     var width: CGFloat = 120
     var animating = true
-    var tint: Color = Theme.mint
 
     /// 캡처용: 뚜껑을 열린 상태로 멈춘다 (`--debug-still`)
     nonisolated(unsafe) static var freeze = false
 
     var body: some View {
-        PhaseAnimator(animating && !Self.freeze ? [0.0, 1.0, 1.0, 0.0] : [0.0]) { lid in
-            macBook(lid: lid)
-        } animation: { lid in
-            lid == 1 ? .easeInOut(duration: 1.0) : .spring(response: 0.9, dampingFraction: 0.8)
+        if animating && !Self.freeze {
+            // 시간에서 뚜껑 각도를 직접 계산한다 → 뒷면이 덮이는 부분까지 끊김 없이 움직인다 (보일 때만 돈다)
+            TimelineView(.animation) { ctx in
+                MacBookShape(width: width, lid: Self.lid(at: ctx.date.timeIntervalSinceReferenceDate))
+            }
+        } else {
+            MacBookShape(width: width, lid: 0)
         }
-        .frame(width: width, height: width * 0.66)
     }
 
-    private func macBook(lid: Double) -> some View {
+    /// 4.6초 주기: 열림 유지 → 닫힘 → 닫힘 유지 → 열림
+    static func lid(at t: TimeInterval) -> Double {
+        let p = t.truncatingRemainder(dividingBy: 4.6)
+        func ease(_ x: Double) -> Double { x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2 }
+        switch p {
+        case ..<1.3: return 0
+        case ..<2.3: return ease((p - 1.3) / 1.0)
+        case ..<3.2: return 1
+        default: return 1 - ease((p - 3.2) / 1.4)
+        }
+    }
+}
+
+struct MacBookShape: View {
+    let width: CGFloat
+    /// 0 = 열림, 1 = 닫힘
+    let lid: Double
+
+    var body: some View {
         let w = width
-        let lidW = w * 0.80
-        let lidH = lidW * 0.64
-        let rim = max(1, w * 0.007)          // 알루미늄 테두리 두께
-        let bezel = w * 0.018                // 검은 베젤 두께
-        let corner = w * 0.034
+        let lidW = w * 0.78
+        let lidH = lidW * 0.645
+        let deckH = w * 0.17
+        let frontH = w * 0.03
+        // 뚜껑이 닫히는 정도: s > 0 이면 화면이 보이고, s < 0 이면 뒷면이 본체를 덮는다
+        let s = 1 - lid * (1 + deckH / lidH)
+        let cover = max(0, -s) * lidH / deckH
 
-        return VStack(spacing: 0) {
-            // 뚜껑 (아래 모서리를 축으로 접힌다)
-            ZStack(alignment: .top) {
-                // 알루미늄 외곽
-                UnevenRoundedRectangle(topLeadingRadius: corner, bottomLeadingRadius: w * 0.006,
-                                       bottomTrailingRadius: w * 0.006, topTrailingRadius: corner, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(white: 0.86), Color(white: 0.62)], startPoint: .top, endPoint: .bottom))
-                // 검은 베젤
-                UnevenRoundedRectangle(topLeadingRadius: corner - rim, bottomLeadingRadius: w * 0.004,
-                                       bottomTrailingRadius: w * 0.004, topTrailingRadius: corner - rim, style: .continuous)
-                    .fill(Color(white: 0.04))
-                    .padding(rim)
-                // 화면: 은은한 배경화면 + "켜짐" 빛
-                display(w: w, glow: 1 - lid * 0.5)
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: corner * 0.55, bottomLeadingRadius: w * 0.003,
-                                                      bottomTrailingRadius: w * 0.003, topTrailingRadius: corner * 0.55,
-                                                      style: .continuous))
-                    .padding(.horizontal, rim + bezel)
-                    .padding(.top, rim + bezel)
-                    .padding(.bottom, rim + bezel * 1.35)
-                // 카메라 노치
-                UnevenRoundedRectangle(bottomLeadingRadius: w * 0.012, bottomTrailingRadius: w * 0.012, style: .continuous)
-                    .fill(Color(white: 0.04))
-                    .frame(width: lidW * 0.13, height: bezel * 1.55)
-                    .overlay(Circle().fill(Color(white: 0.16)).frame(width: w * 0.008, height: w * 0.008).offset(y: -bezel * 0.2))
-                    .padding(.top, rim)
-            }
-            .frame(width: lidW, height: lidH)
-            .brightness(-0.3 * lid)
-            .scaleEffect(x: 1 - 0.03 * lid, y: 1 - 0.92 * lid, anchor: .bottom)
-
-            // 힌지
-            RoundedRectangle(cornerRadius: w * 0.004)
-                .fill(LinearGradient(colors: [Color(white: 0.22), Color(white: 0.42)], startPoint: .top, endPoint: .bottom))
-                .frame(width: lidW * 0.94, height: max(1.5, w * 0.012))
-
-            // 본체
-            ZStack(alignment: .top) {
-                UnevenRoundedRectangle(topLeadingRadius: w * 0.006, bottomLeadingRadius: w * 0.03,
-                                       bottomTrailingRadius: w * 0.03, topTrailingRadius: w * 0.006, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(white: 0.95), Color(white: 0.76), Color(white: 0.56)],
-                                         startPoint: .top, endPoint: .bottom))
-                // 윗면 반사광
-                Rectangle()
-                    .fill(.white.opacity(0.7))
-                    .frame(height: max(0.5, w * 0.003))
-                    .padding(.horizontal, w * 0.02)
-                // 손가락 홈
-                UnevenRoundedRectangle(bottomLeadingRadius: w * 0.014, bottomTrailingRadius: w * 0.014, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(white: 0.55), Color(white: 0.72)], startPoint: .top, endPoint: .bottom))
-                    .frame(width: w * 0.15, height: w * 0.013)
-            }
-            .frame(width: w, height: w * 0.042)
-
+        ZStack(alignment: .top) {
             // 바닥 그림자
             Ellipse()
-                .fill(.black.opacity(0.35))
-                .frame(width: w * 0.86, height: w * 0.03)
-                .blur(radius: w * 0.018)
-                .offset(y: -w * 0.012)
+                .fill(RadialGradient(colors: [.black.opacity(0.45), .clear], center: .center, startRadius: 0, endRadius: w * 0.5))
+                .frame(width: w * 1.1, height: w * 0.09)
+                .offset(y: lidH + deckH + frontH - w * 0.035)
+
+            // 본체 윗면 (키보드·트랙패드)
+            MacBookDeck(topWidth: lidW, bottomWidth: w * 0.985)
+                .frame(width: w, height: deckH)
+                .offset(y: lidH)
+
+            // 닫히는 뚜껑의 뒷면
+            if cover > 0 {
+                MacBookLidBack(topWidth: lidW, bottomWidth: w * 0.985, cover: cover)
+                    .frame(width: w, height: deckH)
+                    .offset(y: lidH)
+            }
+
+            // 화면
+            MacBookScreen(width: lidW, height: lidH)
+                .brightness(-0.35 * lid)
+                .scaleEffect(x: 1, y: max(s, 0.001), anchor: .bottom)
+                .opacity(s > 0 ? 1 : 0)
+
+            // 앞쪽 모서리 + 손가락 홈
+            MacBookFront(height: frontH)
+                .frame(width: w * 0.985, height: frontH)
+                .offset(y: lidH + deckH)
         }
-        .frame(maxHeight: .infinity, alignment: .bottom)
+        .frame(width: w * 1.1, height: lidH + deckH + frontH + w * 0.05, alignment: .top)
+    }
+}
+
+private struct MacBookScreen: View {
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        let w = width
+        let outer = UnevenRoundedRectangle(topLeadingRadius: w * 0.045, bottomLeadingRadius: w * 0.012,
+                                           bottomTrailingRadius: w * 0.012, topTrailingRadius: w * 0.045, style: .continuous)
+        ZStack(alignment: .top) {
+            outer.fill(Color(white: 0.04))
+            outer.strokeBorder(LinearGradient(colors: [Color(white: 0.75), Color(white: 0.4)], startPoint: .top, endPoint: .bottom),
+                               lineWidth: max(0.75, w * 0.006))
+            // 화면: LidOn 바탕화면 (코드로 그린 그림)
+            MacBookWallpaper()
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: w * 0.028, topTrailingRadius: w * 0.028, style: .continuous))
+            .padding(.horizontal, w * 0.022)
+            .padding(.top, w * 0.022)
+            .padding(.bottom, w * 0.05)
+            // 노치
+            UnevenRoundedRectangle(bottomLeadingRadius: w * 0.014, bottomTrailingRadius: w * 0.014, style: .continuous)
+                .fill(Color(white: 0.04))
+                .frame(width: w * 0.14, height: w * 0.042)
+                .padding(.top, w * 0.004)
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+/// LidOn 바탕화면: 어두운 바탕 위로 빛의 호가 흐른다 (코드로 그린 원본 그림, 외부 이미지 없음).
+/// 굵기와 밝기가 다른 선을 겹쳐 흐림 필터 없이도 빛이 번지는 느낌을 낸다.
+struct MacBookWallpaper: View {
+    var body: some View {
+        GeometryReader { geo in
+            let W = geo.size.width, H = geo.size.height
+            ZStack {
+                LinearGradient(colors: [Color(red: 0.02, green: 0.03, blue: 0.09), Color(red: 0.06, green: 0.04, blue: 0.16)],
+                               startPoint: .top, endPoint: .bottom)
+                // 뒤쪽 은은한 빛
+                RadialGradient(colors: [Theme.indigo.opacity(0.55), .clear], center: UnitPoint(x: 0.25, y: 0.9),
+                               startRadius: 0, endRadius: W * 0.7)
+                RadialGradient(colors: [Theme.teal.opacity(0.45), .clear], center: UnitPoint(x: 0.9, y: 0.35),
+                               startRadius: 0, endRadius: W * 0.55)
+                // 큰 빛의 호
+                glowArc(W: W, H: H, size: CGSize(width: W * 1.7, height: H * 1.9), offset: CGPoint(x: W * 0.42, y: H * 0.78),
+                        colors: [Theme.indigo, Color(red: 0.75, green: 0.35, blue: 1.0), Theme.mint, Theme.teal.opacity(0)],
+                        width: H * 0.2, rotation: -12)
+                // 작은 빛의 호
+                glowArc(W: W, H: H, size: CGSize(width: W * 1.2, height: H * 1.3), offset: CGPoint(x: -W * 0.45, y: H * 0.72),
+                        colors: [Theme.teal.opacity(0), Theme.mint, Color(red: 0.35, green: 0.75, blue: 1.0), Theme.indigo],
+                        width: H * 0.12, rotation: 18)
+                // 위쪽 옅은 안개
+                LinearGradient(colors: [.white.opacity(0.06), .clear], startPoint: .top, endPoint: .center)
+            }
+            .frame(width: W, height: H)
+            .clipped()
+        }
     }
 
-    /// 배경화면처럼 빛나는 화면
-    private func display(w: CGFloat, glow: Double) -> some View {
-        ZStack {
-            LinearGradient(colors: [Color(red: 0.10, green: 0.10, blue: 0.30), Theme.indigo.opacity(0.9), Theme.teal, tint],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            // 부드러운 빛 덩어리
-            // 부드러운 빛 덩어리 (흐림 필터 대신 원형 그라데이션 — 어디서 그려도 부드럽다)
-            RadialGradient(colors: [tint.opacity(0.75), tint.opacity(0)], center: UnitPoint(x: 0.78, y: 0.78),
-                           startRadius: 0, endRadius: w * 0.34)
-            RadialGradient(colors: [Theme.indigo.opacity(0.8), Theme.indigo.opacity(0)], center: UnitPoint(x: 0.18, y: 0.2),
-                           startRadius: 0, endRadius: w * 0.3)
-            // 가운데 "켜짐" 빛
-            RadialGradient(colors: [.white, tint.opacity(0.7), tint.opacity(0)], center: .center,
-                           startRadius: 0, endRadius: w * 0.07)
-                .opacity(glow)
-            // 유리 반사
-            LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .topLeading, endPoint: .center)
+    /// 굵은 선 → 가는 선으로 겹쳐 가운데가 가장 밝은 빛의 띠를 만든다
+    private func glowArc(W: CGFloat, H: CGFloat, size: CGSize, offset: CGPoint, colors: [Color], width: CGFloat,
+                         rotation: Double) -> some View {
+        let gradient = AngularGradient(colors: colors + [colors[0]], center: .center)
+        return ZStack {
+            // 바깥에서 안으로: 넓고 옅은 선부터 좁고 밝은 선까지 (계단이 보이지 않게 촘촘히)
+            ForEach(Array([2.6, 2.1, 1.7, 1.35, 1.05, 0.8, 0.55, 0.35].enumerated()), id: \.offset) { i, k in
+                Ellipse().stroke(gradient, lineWidth: width * k).opacity(0.1 + Double(i) * 0.1)
+            }
+            Ellipse().stroke(.white.opacity(0.55), lineWidth: max(0.5, width * 0.08))
+        }
+        .frame(width: size.width, height: size.height)
+        .rotationEffect(.degrees(rotation))
+        .offset(x: offset.x, y: offset.y)
+    }
+}
+
+/// 본체 윗면을 위에서 비스듬히 본 사다리꼴. 키보드와 트랙패드를 원근에 맞춰 그린다.
+private struct MacBookDeck: View {
+    let topWidth: CGFloat
+    let bottomWidth: CGFloat
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width, H = size.height
+            func x(_ y: CGFloat, _ t: CGFloat) -> CGFloat {
+                let row = topWidth + (bottomWidth - topWidth) * (y / H)
+                return (W - row) / 2 + row * t
+            }
+            func quad(_ y0: CGFloat, _ y1: CGFloat, _ t0: CGFloat, _ t1: CGFloat) -> Path {
+                var p = Path()
+                p.move(to: CGPoint(x: x(y0, t0), y: y0))
+                p.addLine(to: CGPoint(x: x(y0, t1), y: y0))
+                p.addLine(to: CGPoint(x: x(y1, t1), y: y1))
+                p.addLine(to: CGPoint(x: x(y1, t0), y: y1))
+                p.closeSubpath()
+                return p
+            }
+            // 알루미늄 윗면
+            ctx.fill(quad(0, H, 0, 1), with: .linearGradient(
+                Gradient(colors: [Color(white: 0.74), Color(white: 0.88)]), startPoint: .zero, endPoint: CGPoint(x: 0, y: H)))
+            // 키보드
+            let ky0 = H * 0.08, ky1 = H * 0.58
+            ctx.fill(quad(ky0, ky1, 0.075, 0.925), with: .color(Color(white: 0.30)))
+            let rows = 6
+            let widths: [[CGFloat]] = [
+                Array(repeating: 1, count: 14),
+                Array(repeating: 1, count: 14),
+                [1.5] + Array(repeating: 1, count: 12) + [1.5],
+                [1.8] + Array(repeating: 1, count: 11) + [2.2],
+                [2.3] + Array(repeating: 1, count: 10) + [2.7],
+                [1, 1, 1, 1.3, 5.2, 1.3, 1, 1, 1],
+            ]
+            let rowH = (ky1 - ky0) / CGFloat(rows)
+            for r in 0..<rows {
+                let y0 = ky0 + CGFloat(r) * rowH + rowH * 0.14
+                let y1 = y0 + rowH * (r == 0 ? 0.5 : 0.72)
+                let total = widths[r].reduce(0, +)
+                var t = 0.085 as CGFloat
+                let span = 0.83 as CGFloat
+                for kw in widths[r] {
+                    let t0 = t + span * 0.006, t1 = t + span * kw / total - span * 0.006
+                    ctx.fill(quad(y0, y1, t0, t1), with: .color(Color(white: 0.09)))
+                    t += span * kw / total
+                }
+            }
+            // 트랙패드
+            let pad = quad(H * 0.64, H * 0.94, 0.33, 0.67)
+            ctx.fill(pad, with: .color(Color(white: 0.83)))
+            ctx.stroke(pad, with: .color(Color(white: 0.68)), lineWidth: 0.6)
+            // 앞 모서리 반사광
+            var edge = Path()
+            edge.move(to: CGPoint(x: x(H, 0), y: H - 0.5))
+            edge.addLine(to: CGPoint(x: x(H, 1), y: H - 0.5))
+            ctx.stroke(edge, with: .color(.white.opacity(0.9)), lineWidth: 1)
+        }
+    }
+}
+
+/// 닫히는 뚜껑의 알루미늄 뒷면: 힌지에서부터 본체를 덮어 내려온다
+private struct MacBookLidBack: View {
+    let topWidth: CGFloat
+    let bottomWidth: CGFloat
+    let cover: CGFloat
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width, H = size.height
+            let y1 = H * min(1, cover)
+            func x(_ y: CGFloat, _ t: CGFloat) -> CGFloat {
+                let row = topWidth + (bottomWidth - topWidth) * (y / H)
+                return (W - row) / 2 + row * t
+            }
+            var p = Path()
+            p.move(to: CGPoint(x: x(0, 0), y: 0))
+            p.addLine(to: CGPoint(x: x(0, 1), y: 0))
+            p.addLine(to: CGPoint(x: x(y1, 1), y: y1))
+            p.addLine(to: CGPoint(x: x(y1, 0), y: y1))
+            p.closeSubpath()
+            ctx.fill(p, with: .linearGradient(Gradient(colors: [Color(white: 0.66), Color(white: 0.84), Color(white: 0.9)]),
+                                              startPoint: .zero, endPoint: CGPoint(x: 0, y: max(y1, 1))))
+            // 뚜껑 앞 모서리
+            var edge = Path()
+            edge.move(to: CGPoint(x: x(y1, 0), y: y1))
+            edge.addLine(to: CGPoint(x: x(y1, 1), y: y1))
+            ctx.stroke(edge, with: .color(Color(white: 0.55)), lineWidth: 1)
+        }
+    }
+}
+
+private struct MacBookFront: View {
+    let height: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            UnevenRoundedRectangle(bottomLeadingRadius: height * 0.9, bottomTrailingRadius: height * 0.9, style: .continuous)
+                .fill(LinearGradient(colors: [Color(white: 0.78), Color(white: 0.52)], startPoint: .top, endPoint: .bottom))
+            // 손가락 홈
+            UnevenRoundedRectangle(bottomLeadingRadius: height * 0.5, bottomTrailingRadius: height * 0.5, style: .continuous)
+                .fill(LinearGradient(colors: [Color(white: 0.5), Color(white: 0.66)], startPoint: .top, endPoint: .bottom))
+                .frame(width: height * 5, height: height * 0.55)
         }
     }
 }

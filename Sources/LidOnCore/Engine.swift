@@ -4,8 +4,8 @@ public struct EngineConfig: Equatable, Sendable {
     public var fnGesture = true
     /// Fn을 이만큼 눌러야 무장된다 (일반적인 Fn 사용과 구분)
     public var fnHoldThreshold: TimeInterval = 0.45
-    /// Fn을 뗀 뒤에도 이 시간 안에 뚜껑이 닫히면 봉인한다 (닫는 동시에 손을 떼는 경우)
-    public var fnGrace: TimeInterval = 1.5
+    /// Fn을 뗀 뒤에도 이 시간 안에 뚜껑이 닫히면 봉인한다 (Fn을 떼고 천천히 닫아도 되도록)
+    public var fnGrace: TimeInterval = 3
     public var thermalGuard = true
     public var maxBatteryTemp: Double = 45
     public var batteryGuard = true

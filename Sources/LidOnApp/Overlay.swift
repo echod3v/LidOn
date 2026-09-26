@@ -1,37 +1,57 @@
 import AppKit
 import SwiftUI
 
-/// Fn을 누르고 있을 때 / 수동으로 켰을 때 보여주는 전체 화면 애니메이션
+/// 전체 화면 안내에 보여 줄 내용. 창을 다시 만들지 않고 내용만 바꿀 수 있게 공유한다.
+final class OverlayModel: ObservableObject {
+    enum Kind { case fnHint, confirm }
+
+    @Published var kind: Kind = .fnHint
+    @Published var title = ""
+    @Published var subtitle = ""
+    /// Fn을 뗀 뒤 유예 시간 — 이 시각 안에 뚜껑을 닫으면 계속 실행된다
+    @Published var deadline: Date?
+    @Published var graceDuration: TimeInterval = 3
+
+    /// 캡처용 미리보기
+    static func preview(_ kind: Kind, _ title: String, _ subtitle: String, deadline: Date? = nil) -> OverlayModel {
+        let m = OverlayModel()
+        m.kind = kind
+        m.title = title
+        m.subtitle = subtitle
+        m.deadline = deadline
+        m.graceDuration = 3
+        return m
+    }
+}
+
+/// Fn을 누르고 있을 때 / 수동으로 켰을 때 보여 주는 전체 화면 안내
 final class OverlayController {
     private var windows: [NSWindow] = []
     private var hideWork: DispatchWorkItem?
+    private let model = OverlayModel()
     private(set) var isShowing = false
 
-    func show(title: String, subtitle: String, symbol: String = "laptopcomputer", autoHide: TimeInterval? = nil) {
+    func show(_ kind: OverlayModel.Kind, title: String, subtitle: String, autoHide: TimeInterval? = nil) {
         hideWork?.cancel()
-        if isShowing { hide(animated: false) }
-        isShowing = true
-        for screen in NSScreen.screens {
-            let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
-            w.level = .screenSaver
-            w.isOpaque = false
-            w.backgroundColor = .clear
-            w.ignoresMouseEvents = true
-            w.hasShadow = false
-            w.isReleasedWhenClosed = false
-            w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-            w.contentView = NSHostingView(rootView: OverlayView(title: title, subtitle: subtitle, symbol: symbol))
-            w.setFrame(screen.frame, display: false)
-            w.alphaValue = 0
-            w.orderFrontRegardless()
-            NSAnimationContext.runAnimationGroup { $0.duration = 0.2; w.animator().alphaValue = 1 }
-            windows.append(w)
+        withAnimation(Theme.spring) {
+            model.kind = kind
+            model.title = title
+            model.subtitle = subtitle
+            model.deadline = nil
         }
-        if let t = autoHide {
-            let work = DispatchWorkItem { [weak self] in self?.hide() }
-            hideWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + t, execute: work)
+        if !isShowing { present() }
+        if let t = autoHide { scheduleHide(after: t) }
+    }
+
+    /// Fn을 뗀 뒤: 안내를 바로 닫지 않고 남은 시간을 보여 준다
+    func countdown(_ seconds: TimeInterval, subtitle: String) {
+        guard isShowing else { return }
+        withAnimation(Theme.spring) {
+            model.subtitle = subtitle
+            model.graceDuration = seconds
+            model.deadline = Date().addingTimeInterval(seconds)
         }
+        scheduleHide(after: seconds)
     }
 
     func hide(animated: Bool = true) {
@@ -42,91 +62,142 @@ final class OverlayController {
         windows = []
         guard animated else { ws.forEach { $0.orderOut(nil) }; return }
         NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.2
+            ctx.duration = 0.25
             ws.forEach { $0.animator().alphaValue = 0 }
         }, completionHandler: { ws.forEach { $0.orderOut(nil) } })
+    }
+
+    private func scheduleHide(after t: TimeInterval) {
+        hideWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.hide() }
+        hideWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + t, execute: work)
+    }
+
+    private func present() {
+        isShowing = true
+        for screen in NSScreen.screens {
+            let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
+            w.level = .screenSaver
+            w.isOpaque = false
+            w.backgroundColor = .clear
+            w.ignoresMouseEvents = true
+            w.hasShadow = false
+            w.isReleasedWhenClosed = false
+            w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+            w.contentView = NSHostingView(rootView: OverlayView(model: model))
+            w.setFrame(screen.frame, display: false)
+            w.alphaValue = 0
+            w.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { $0.duration = 0.25; w.animator().alphaValue = 1 }
+            windows.append(w)
+        }
     }
 }
 
 struct OverlayView: View {
-    let title: String
-    let subtitle: String
-    let symbol: String
+    @ObservedObject var model: OverlayModel
     @State private var appear = false
-
-    /// Fn 안내(뚜껑 닫는 동작을 보여 줌)인가, 켜짐 확인인가
-    private var isFnHint: Bool { symbol == "laptopcomputer" }
 
     var body: some View {
         ZStack {
             BehindWindowBlur()
-            Color.black.opacity(0.45)
-            // 가운데에서 번지는 빛
-            RadialGradient(colors: [Theme.mint.opacity(0.28), Theme.teal.opacity(0.08), .clear],
-                           center: .center, startRadius: 0, endRadius: 520)
-                .scaleEffect(appear ? 1 : 0.6)
+            Color.black.opacity(0.5)
+            // 가운데 은은한 빛 하나
+            RadialGradient(colors: [Theme.teal.opacity(0.35), Theme.indigo.opacity(0.12), .clear],
+                           center: .center, startRadius: 0, endRadius: 460)
+                .scaleEffect(appear ? 1 : 0.7)
 
-            VStack(spacing: 34) {
-                ZStack {
-                    StatusOrb(state: .armed, size: isFnHint ? 280 : 190, symbol: isFnHint ? "" : "bolt.fill")
-                        .opacity(isFnHint ? 0.5 : 1)
-                    if isFnHint {
-                        LaptopGlyph(width: 220, animating: true)
-                            .offset(y: 4)
+            VStack(spacing: 30) {
+                Group {
+                    if model.kind == .fnHint {
+                        LaptopGlyph(width: 250, animating: true)
+                    } else {
+                        StatusOrb(state: .armed, size: 150, symbol: "bolt.fill")
                     }
                 }
-                .scaleEffect(appear ? 1 : 0.7)
+                .scaleEffect(appear ? 1 : 0.85)
                 .opacity(appear ? 1 : 0)
 
                 VStack(spacing: 10) {
-                    Text(title)
+                    Text(model.title)
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text(subtitle)
+                    Text(model.subtitle)
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(.white.opacity(0.72))
+                        .contentTransition(.opacity)
                 }
                 .multilineTextAlignment(.center)
-                .offset(y: appear ? 0 : 16)
+                .offset(y: appear ? 0 : 14)
                 .opacity(appear ? 1 : 0)
 
-                if isFnHint {
-                    FnKeycap()
-                        .offset(y: appear ? 0 : 20)
+                if model.kind == .fnHint {
+                    FnKeycap(deadline: model.deadline, duration: model.graceDuration)
+                        .offset(y: appear ? 0 : 18)
                         .opacity(appear ? 1 : 0)
                 }
             }
         }
         .ignoresSafeArea()
         .onAppear {
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) { appear = true }
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { appear = true }
         }
     }
 }
 
-/// 눌려 있는 Fn(🌐) 키
+/// Fn(🌐) 키. 누르고 있는 동안은 숨 쉬듯 빛나고, 뗀 뒤에는 남은 시간이 링으로 줄어든다.
 private struct FnKeycap: View {
-    @State private var pressed = false
+    var deadline: Date?
+    var duration: TimeInterval
+    @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: "fn").font(.system(size: 15, weight: .semibold, design: .rounded))
-                Image(systemName: "globe").font(.system(size: 15, weight: .medium))
+        ZStack {
+            if let deadline {
+                // 남은 시간 링 + 숫자
+                TimelineView(.animation) { ctx in
+                    let left = max(0, deadline.timeIntervalSince(ctx.date))
+                    ZStack {
+                        Circle().stroke(.white.opacity(0.12), lineWidth: 4)
+                        Circle()
+                            .trim(from: 0, to: left / max(duration, 0.1))
+                            .stroke(Theme.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text(verbatim: "\(Int(left.rounded(.up)))")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.mint)
+                            .contentTransition(.numericText(countsDown: true))
+                            .offset(y: 62)
+                    }
+                    .frame(width: 88, height: 88)
+                }
+                .transition(.scale.combined(with: .opacity))
             }
-            .foregroundStyle(.white.opacity(0.9))
+            VStack(spacing: 4) {
+                Text(verbatim: "fn").font(.system(size: 15, weight: .semibold, design: .rounded))
+                Image(systemName: "globe").font(.system(size: 14, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(deadline == nil ? 0.95 : 0.6))
             .frame(width: 58, height: 58)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(white: 0.28), Color(white: 0.16)], startPoint: .top, endPoint: .bottom))
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.26), Color(white: 0.14)], startPoint: .top, endPoint: .bottom))
             )
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.mint.opacity(0.9), lineWidth: 1.5))
-            .shadow(color: Theme.mint.opacity(pressed ? 0.8 : 0.3), radius: pressed ? 16 : 6)
-            .scaleEffect(pressed ? 0.94 : 1)
-            .offset(y: pressed ? 2 : 0)
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(deadline == nil ? Theme.mint.opacity(0.9) : .white.opacity(0.2), lineWidth: 1.5)
+            )
+            .shadow(color: Theme.mint.opacity(deadline == nil ? (pulse ? 0.7 : 0.25) : 0), radius: pulse ? 16 : 6)
+            // 눌려 있는 동안은 살짝 내려가 있고, 떼면 올라온다
+            .scaleEffect(deadline == nil ? (pulse ? 0.95 : 0.98) : 1)
+            .offset(y: deadline == nil ? 2 : 0)
         }
+        .frame(height: 130)
+        .animation(Theme.spring, value: deadline)
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pressed = true }
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) { pulse = true }
         }
     }
 }

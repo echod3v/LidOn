@@ -143,3 +143,4 @@
 "Language" = "언어";
 "Restart LidOn to apply the new language." = "새 언어는 LidOn을 다시 시작하면 적용돼요.";
 "Restart Now" = "지금 다시 시작";
+"Fn released — close within %d seconds to keep running" = "Fn을 뗐어도 %d초 안에 닫으면 계속 실행돼요";

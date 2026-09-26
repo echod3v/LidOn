@@ -41,14 +41,13 @@ struct WelcomeView: View {
         VStack(spacing: 0) {
             // 히어로: 빛 위에서 뚜껑이 닫혔다 열리는 노트북
             ZStack {
-                LinearGradient(colors: [Theme.teal.opacity(0.35), Theme.indigo.opacity(0.25), .clear],
+                LinearGradient(colors: [Theme.teal.opacity(0.28), Theme.indigo.opacity(0.14), .clear],
                                startPoint: .top, endPoint: .bottom)
-                StatusOrb(state: .armed, size: 180, symbol: "")
-                    .opacity(0.45)
-                LaptopGlyph(width: 160)
-                    .offset(y: 4)
+                RadialGradient(colors: [Theme.mint.opacity(0.28), .clear], center: .center, startRadius: 0, endRadius: 170)
+                LaptopGlyph(width: 190)
+                    .offset(y: 8)
             }
-            .frame(height: 190)
+            .frame(height: 200)
             .clipped()
 
             VStack(spacing: 18) {

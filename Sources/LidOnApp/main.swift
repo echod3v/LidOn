@@ -6,6 +6,12 @@ if CommandLine.arguments.contains(Watchdog.argument) {
     Watchdog.run()
 }
 
+// `LidOn --render-icon <png>`: 앱 아이콘 그림을 PNG로 저장하고 끝낸다 (scripts/make-icon.sh)
+if let i = CommandLine.arguments.firstIndex(of: "--render-icon"), i + 1 < CommandLine.arguments.count {
+    let ok = MainActor.assumeIsolated { IconArtwork.render(to: CommandLine.arguments[i + 1]) }
+    exit(ok ? 0 : 1)
+}
+
 // 파이프가 끊긴 워치독에 쓸 때 앱이 죽지 않도록
 signal(SIGPIPE, SIG_IGN)
 

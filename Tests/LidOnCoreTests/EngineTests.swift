@@ -56,6 +56,15 @@ final class EngineTests: XCTestCase {
         XCTAssertTrue(engine.wantsLidSleepDisabled(now: now))
     }
 
+    func testFnReleasedWithinThreeSecondsStillSeals() {
+        fn = true
+        step(); step(after: 0.5)
+        fn = false
+        step()                       // 손을 뗌
+        lid = true
+        XCTAssertTrue(step(after: 2.8).contains(.sealed([.fn])), "Fn을 떼고 3초 안에 닫으면 계속 실행")
+    }
+
     func testFnReleasedJustBeforeLidClosesStillSeals() {
         fn = true
         step(); step(after: 0.5)
@@ -71,7 +80,7 @@ final class EngineTests: XCTestCase {
         step(); step(after: 0.5)
         fn = false
         step()                       // 손을 뗌
-        step(after: 3)               // 3초 뒤
+        step(after: 3.5)             // 유예 시간(3초)이 지난 뒤
         lid = true
         let ev = step()
         XCTAssertFalse(engine.isSealed)

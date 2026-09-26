@@ -51,10 +51,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("history", tab(HistoryTab(model: model))),
             ("about", tab(AboutTab(model: model))),
             ("welcome", AnyView(WelcomeView(model: model, settings: settings) {}.background(Color(nsColor: .windowBackgroundColor)))),
-            ("overlay-fn", AnyView(OverlayView(title: L("Close the lid"), subtitle: L("Keep holding Fn while closing — your work keeps running"),
-                                               symbol: "laptopcomputer").frame(width: 900, height: 620).background(Color.black))),
-            ("overlay-on", AnyView(OverlayView(title: L("LidOn is on"), subtitle: L("You can close the lid — your work keeps running"),
-                                               symbol: "bolt.circle").frame(width: 900, height: 620).background(Color.black))),
+            ("overlay-fn", AnyView(OverlayView(model: .preview(.fnHint, L("Close the lid"),
+                                                               L("Keep holding Fn while closing — your work keeps running")))
+                .frame(width: 900, height: 620).background(Color.black))),
+            ("overlay-countdown", AnyView(OverlayView(model: .preview(.fnHint, L("Close the lid"),
+                                                                      L("Fn released — close within %d seconds to keep running", 3),
+                                                                      deadline: Date().addingTimeInterval(4.5)))
+                .frame(width: 900, height: 620).background(Color.black))),
+            ("macbook-half", AnyView(MacBookShape(width: 300, lid: 0.55).padding(30).background(Color.black))),
+            ("macbook-closed", AnyView(MacBookShape(width: 300, lid: 1).padding(30).background(Color.black))),
+            ("overlay-on", AnyView(OverlayView(model: .preview(.confirm, L("LidOn is on"),
+                                                               L("You can close the lid — your work keeps running")))
+                .frame(width: 900, height: 620).background(Color.black))),
         ]
         for (i, (title, view)) in views.enumerated() {
             let w = NSWindow(contentRect: NSRect(x: 40 + i * 30, y: 100 + i * 30, width: 400, height: 500),

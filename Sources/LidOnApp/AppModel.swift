@@ -115,8 +115,8 @@ final class AppModel: ObservableObject {
         let now = Date()
         handle(engine.setManual(on, until: minutes.map { now.addingTimeInterval($0 * 60) }, now: now))
         if on && settings.showAnimation && !engine.lidClosed {
-            overlay.show(title: L("LidOn is on"), subtitle: L("You can close the lid — your work keeps running"),
-                         symbol: "bolt.circle", autoHide: 1.6)
+            overlay.show(.confirm, title: L("LidOn is on"), subtitle: L("You can close the lid — your work keeps running"),
+                         autoHide: 1.6)
         }
         apply()
     }
@@ -244,10 +244,16 @@ final class AppModel: ObservableObject {
             switch e {
             case .fnArmed:
                 if settings.showAnimation {
-                    overlay.show(title: L("Close the lid"), subtitle: L("Keep holding Fn while closing — your work keeps running"))
+                    overlay.show(.fnHint, title: L("Close the lid"), subtitle: L("Keep holding Fn while closing — your work keeps running"))
                 }
             case .fnDisarmed:
-                overlay.hide()
+                if engine.lidClosed {
+                    overlay.hide(animated: false)
+                } else {
+                    // Fn을 뗐어도 유예 시간 안에 닫으면 계속 실행된다 — 남은 시간을 보여 준다
+                    let grace = engine.config.fnGrace
+                    overlay.countdown(grace, subtitle: L("Fn released — close within %d seconds to keep running", Int(grace)))
+                }
             case .sealed:
                 overlay.hide(animated: false)
                 lastMessage = nil
