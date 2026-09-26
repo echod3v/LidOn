@@ -7,7 +7,7 @@ A free, open-source macOS menu bar app that keeps your MacBook — and your AI c
 No external display, no charger, no <code>sudo</code>.</p>
 
 <p align="center">
-  <a href="https://github.com/echod3v/LidOn/releases/latest"><img src="https://img.shields.io/github/v/release/echod3v/LidOn?color=14a0b4" alt="Release"></a>
+  <a href="https://github.com/jayden0903/LidOn/releases/latest"><img src="https://img.shields.io/github/v/release/jayden0903/LidOn?color=14a0b4" alt="Release"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-555" alt="macOS 14+">
   <img src="https://img.shields.io/badge/license-MIT-555" alt="MIT">
   <a href="README.ko.md"><img src="https://img.shields.io/badge/README-한국어-555" alt="한국어"></a>
@@ -26,17 +26,17 @@ LidOn keeps the Mac running only while there's a reason to, and lets it sleep ag
 ## Install
 
 ```bash
-brew install --cask echod3v/tap/lidon
+brew install --cask jayden0903/tap/lidon
 ```
 
 or
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jayden0903/LidOn/main/install.sh | bash
 ```
 
 Both install `LidOn.app` into `/Applications` and put the `lidon` command on your `PATH`.
-You can also download the zip from [Releases](https://github.com/echod3v/LidOn/releases/latest) — LidOn isn't notarized yet,
+You can also download the zip from [Releases](https://github.com/jayden0903/LidOn/releases/latest) — LidOn isn't notarized yet,
 so the first time, open **System Settings → Privacy & Security** and click **Open Anyway**.
 
 Requires macOS 14 Sonoma or later on a MacBook (Apple silicon or Intel).
@@ -75,7 +75,7 @@ A skill tells the agent when to use it: before work that may take ~5 minutes or 
 **Claude Code** — plugin (MCP server + skill):
 
 ```
-/plugin marketplace add echod3v/LidOn
+/plugin marketplace add jayden0903/LidOn
 /plugin install lidon@lidon
 ```
 
@@ -144,7 +144,7 @@ quarantine flag for you. The source is all here.
 
 **Will a macOS update break it?**
 It relies on an undocumented interface, so it could. Please test again after major macOS updates and
-[open an issue](https://github.com/echod3v/LidOn/issues) if something changes.
+[open an issue](https://github.com/jayden0903/LidOn/issues) if something changes.
 
 **Intel Macs?**
 Builds are universal. Intel hasn't been tested as much as Apple silicon — reports welcome.

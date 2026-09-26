@@ -3,7 +3,7 @@
   "description": "Let Claude keep your MacBook awake with the lid closed during long work (keep_awake / allow_sleep / notify), using the LidOn app.",
   "version": "1.0.0",
   "author": { "name": "LidOn contributors" },
-  "homepage": "https://github.com/echod3v/LidOn",
+  "homepage": "https://github.com/jayden0903/LidOn",
   "license": "MIT",
   "keywords": ["macos", "sleep", "lid", "caffeinate", "long-running"]
 }

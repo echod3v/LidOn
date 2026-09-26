@@ -1,5 +1,5 @@
 #!/bin/zsh
-# 릴리스된 버전의 cask를 Homebrew tap(echod3v/homebrew-tap)에 올린다: scripts/update-tap.sh 1.1.0
+# 릴리스된 버전의 cask를 Homebrew tap(jayden0903/homebrew-tap)에 올린다: scripts/update-tap.sh 1.1.0
 # (GitHub Actions가 릴리스를 만든 뒤 실행. gh 로그인 필요)
 set -euo pipefail
 cd "$(dirname "$0")/.."

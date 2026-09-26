@@ -1,7 +1,7 @@
 #!/bin/bash
-# LidOn 설치: curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
+# LidOn 설치: curl -fsSL https://raw.githubusercontent.com/jayden0903/LidOn/main/install.sh | bash
 set -euo pipefail
-REPO="${LIDON_REPO:-echod3v/LidOn}"
+REPO="${LIDON_REPO:-jayden0903/LidOn}"
 
 echo "▸ Finding the latest LidOn release…"
 URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \

@@ -43,7 +43,7 @@ Claude Code · Codex · Cursor · 빌드 · 다운로드 — 외부 모니터나
 **설치 스크립트 (권장)**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jayden0903/LidOn/main/install.sh | bash
 ```
 
 `/Applications`에 설치하고 `lidon` 명령어를 연결한 뒤 실행해요.
@@ -51,12 +51,12 @@ curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bas
 **Homebrew**
 
 ```bash
-brew install --cask echod3v/tap/lidon
+brew install --cask jayden0903/tap/lidon
 ```
 
 **직접 다운로드**
 
-[Releases](https://github.com/echod3v/LidOn/releases)에서 `LidOn-x.y.z.zip`을 받아 압축을 풀고 응용 프로그램 폴더로 옮기세요.
+[Releases](https://github.com/jayden0903/LidOn/releases)에서 `LidOn-x.y.z.zip`을 받아 압축을 풀고 응용 프로그램 폴더로 옮기세요.
 LidOn은 Apple 개발자 서명이 없는 무료 앱이라 처음 열 때 경고가 떠요. 아래 둘 중 하나로 허용하세요.
 
 - **시스템 설정 → 개인정보 보호 및 보안** 아래쪽에서 **"그래도 열기"** 클릭
@@ -113,7 +113,7 @@ LidOn은 에이전트가 일하는지 추측하지 않아요. 대신 **에이전
 **Claude Code — 플러그인 (MCP + 스킬)**
 
 ```
-/plugin marketplace add echod3v/LidOn
+/plugin marketplace add jayden0903/LidOn
 /plugin install lidon@lidon
 ```
 
@@ -175,7 +175,7 @@ LidOn 자체는 대기 중 CPU를 0.1~0.3% 정도 써요. 애니메이션은 Lid
 아직 Apple 개발자 계정이 없는 무료 프로젝트라서예요. Homebrew와 설치 스크립트는 격리 표시를 자동으로 지워 줘요. 소스는 모두 공개돼 있어요.
 
 **macOS 업데이트 후에도 되나요?**
-공개되지 않은 인터페이스를 쓰기 때문에 바뀔 수 있어요. 큰 업데이트 뒤에는 한 번 확인해 보시고, 문제가 있으면 [이슈](https://github.com/echod3v/LidOn/issues)로 알려 주세요.
+공개되지 않은 인터페이스를 쓰기 때문에 바뀔 수 있어요. 큰 업데이트 뒤에는 한 번 확인해 보시고, 문제가 있으면 [이슈](https://github.com/jayden0903/LidOn/issues)로 알려 주세요.
 
 ## 동작 원리
 
@@ -203,7 +203,7 @@ Xcode 16 이상(Swift 6 툴체인)이 필요해요.
 
 1. `scripts/set-repo.sh 내아이디/LidOn` — 저장소 이름을 모든 파일에 반영
 2. `git tag v1.0.0 && git push origin v1.0.0` — GitHub Actions가 테스트 → 유니버설 빌드 → Release 생성까지 해요
-3. Homebrew: 릴리스가 만들어지면 `scripts/update-tap.sh 1.0.0`으로 `echod3v/homebrew-tap`의 cask를 갱신해요
+3. Homebrew: 릴리스가 만들어지면 `scripts/update-tap.sh 1.0.0`으로 `jayden0903/homebrew-tap`의 cask를 갱신해요
 
 로컬에서 만들려면 `scripts/release.sh 1.0.0`을 실행하세요 (`dist/`에 zip, sha256, cask가 생겨요).
 Apple Developer ID가 생기면 `SIGN_ID="Developer ID Application: …" scripts/build-app.sh`로 정식 서명할 수 있어요.
