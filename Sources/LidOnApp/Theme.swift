@@ -151,7 +151,7 @@ struct MacBookShape: View {
         let deckH = w * 0.17
         let frontH = w * 0.03
         // 뚜껑이 닫히는 정도: s > 0 이면 화면이 보이고, s < 0 이면 뒷면이 본체를 덮는다
-        let s = 1 - lid * (1 + deckH / lidH)
+        let s: CGFloat = 1 - CGFloat(lid) * (1 + deckH / lidH)
         let cover = max(0, -s) * lidH / deckH
 
         ZStack(alignment: .top) {
