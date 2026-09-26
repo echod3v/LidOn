@@ -152,7 +152,7 @@ while it's running with the lid closed, and turns it off right after — at laun
 setting survives restarts. That switch needs root, so installation adds one sudoers rule (`/etc/sudoers.d/lidon`) that allows
 exactly `pmset -a disablesleep 0` and `1` — nothing else. If you skip it, finish later from the LidOn menu or with
 `lidon system-setup`; until then LidOn keeps the Mac running on power but can't stop it sleeping if you unplug it.
-`brew uninstall` removes the rule, or run `lidon system-setup --remove`.
+Uninstalling LidOn removes the rule (see Uninstall), or run `lidon system-setup --remove`.
 
 **Will a macOS update break it?**
 It relies on an undocumented interface, so it could. Please test again after major macOS updates and
@@ -164,10 +164,13 @@ Builds are universal. Intel hasn't been tested as much as Apple silicon — repo
 ## Uninstall
 
 ```bash
-brew uninstall --zap --cask lidon      # or drag LidOn.app to the Trash
+brew uninstall --zap --cask lidon      # installed with Homebrew
+lidon uninstall                        # installed with the script or the zip
 ```
 
-To remove agent integrations: *Settings → Agents → Disconnect*.
+Or use *Settings → About → Uninstall LidOn…*. Each of these also removes the system setting added at install
+(`/etc/sudoers.d/lidon`), agent connections, history and settings. If you just drag LidOn.app to the Trash while it's running,
+LidOn offers to clean up the rest.
 
 ## Build from source
 

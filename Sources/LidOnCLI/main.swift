@@ -20,6 +20,7 @@ USAGE
   lidon notify <message> [--title <t>]   Notify the user on this Mac (and phone, if set up)
 
   lidon login-item [on|off|status]       Launch LidOn at login
+  lidon uninstall                        Remove LidOn, its system setting, agent connections and history
   lidon system-setup [--remove]          One-time admin setup so the Mac stays awake even when a charger or
                                          display is plugged in or out with the lid closed (asks for your password)
 
@@ -183,6 +184,33 @@ case "system-setup":
     guard StrongMode.runAsRoot(script) else { fail("could not update \(StrongMode.sudoersPath)") }
     print(remove ? "✓ Removed \(StrongMode.sudoersPath)"
                  : "✓ Done. LidOn now keeps the Mac awake even if a charger or display is plugged in or out with the lid closed.")
+
+case "uninstall":
+    if Uninstall.brewCaskroom != nil {
+        print("LidOn was installed with Homebrew. This removes it and its system setting:\n  \(Uninstall.brewCommand)")
+        exit(1)
+    }
+    // …/LidOn.app/Contents/Helpers/lidon → …/LidOn.app
+    let app = URL(fileURLWithPath: cliPath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    guard app.pathExtension == "app" else { fail("could not find LidOn.app (is this a development build?)") }
+    if StrongMode.isInstalled {
+        print("Removing the system setting (\(StrongMode.sudoersPath)) — enter your password if asked.")
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+        p.arguments = ["/bin/sh", "-c", StrongMode.uninstallScript]
+        do { try p.run() } catch { fail("could not run sudo") }
+        p.waitUntilExit()
+        guard !StrongMode.isInstalled else { fail("the system setting was not removed; nothing else was changed") }
+    }
+    // 앱이 켜져 있을 때만: 로그인 항목을 끄고 종료시킨다 (꺼져 있으면 새로 켜지 않는다)
+    _ = try? IPCClient.send(IPCRequest(cmd: "login-item", label: "off"))
+    _ = try? IPCClient.send(IPCRequest(cmd: "quit"))
+    sleep(1)
+    Uninstall.removeAgents()
+    Uninstall.removeCLILinks(appBundle: app)
+    Uninstall.removeSupportFiles()
+    do { try FileManager.default.trashItem(at: app, resultingItemURL: nil) } catch { fail("could not move \(app.path) to the Trash") }
+    print("✓ LidOn was removed (the app is in the Trash).")
 
 case "mcp":
     MCPServer.run()

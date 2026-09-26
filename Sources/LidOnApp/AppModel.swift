@@ -249,7 +249,21 @@ final class AppModel: ObservableObject {
         apply()
     }
 
+    /// 앱이 휴지통으로 옮겨졌는지 한 번만 확인해 정리를 제안한다
+    private var trashChecked = false
+
+    private func checkMovedToTrash() {
+        // 뚜껑이 닫혀 실행 중이면 끝난 뒤에 묻는다
+        guard !trashChecked, !isSealed, Bundle.main.bundlePath.contains("/.Trash/") else { return }
+        trashChecked = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            MainActor.assumeIsolated { AppUninstaller.offerCleanupAfterTrash(model: self) }
+        }
+    }
+
     private func refresh() {
+        checkMovedToTrash()
         // 시간이 지났거나 소유 프로세스가 사라진 요청 정리
         // (종료 알림을 못 받는 경우 — 다른 사용자의 프로세스 등 — 도 여기서 잡힌다)
         let now = Date()

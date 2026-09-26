@@ -153,3 +153,16 @@
 "Finish setup" = "설정 마치기";
 "Allow…" = "허용…";
 "Enter your password once so the Mac stays awake even if you plug in or unplug a charger or display with the lid closed." = "암호를 한 번만 입력하면, 뚜껑이 닫힌 채 충전기나 모니터를 꽂거나 빼도 Mac이 잠들지 않아요.";
+"Uninstall LidOn…" = "LidOn 제거…";
+"Removes LidOn together with its system setting (the pmset rule added at install), agent connections, history and settings." = "LidOn과 함께 시스템 설정(설치할 때 추가한 pmset 규칙), 에이전트 연결, 기록, 설정을 모두 지워요.";
+"Uninstall LidOn?" = "LidOn을 제거할까요?";
+"This removes LidOn, its system setting, agent connections, history and settings. You'll be asked for your password." = "LidOn과 시스템 설정, 에이전트 연결, 기록, 설정을 모두 지워요. 암호를 물어볼 거예요.";
+"Uninstall" = "제거";
+"Cancel" = "취소";
+"Installed with Homebrew" = "Homebrew로 설치됐어요";
+"Run this in Terminal to remove LidOn and its system setting (copied to the clipboard):" = "터미널에서 아래 명령을 실행하면 LidOn과 시스템 설정이 함께 지워져요 (클립보드에 복사했어요):";
+"LidOn was moved to the Trash" = "LidOn을 휴지통으로 옮겼어요";
+"Also remove its system setting, agent connections, history and settings? You'll be asked for your password." = "시스템 설정, 에이전트 연결, 기록, 설정도 함께 지울까요? 암호를 물어볼 거예요.";
+"Remove" = "지우기";
+"Keep" = "남겨 두기";
+"Could not remove the system setting" = "시스템 설정을 지우지 못했어요";

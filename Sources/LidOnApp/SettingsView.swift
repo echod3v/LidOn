@@ -380,6 +380,11 @@ struct AboutTab: View {
                 Footnote("Example: lidon run -- npm test  ·  lidon on --for 2h  ·  lidon status")
             }
             Section {
+                Button("Uninstall LidOn…", role: .destructive) { AppUninstaller.confirmAndUninstall(model: model) }
+            } footer: {
+                Footnote("Removes LidOn together with its system setting (the pmset rule added at install), agent connections, history and settings.")
+            }
+            Section {
                 Footnote("LidOn is free and open source. It uses an undocumented macOS interface, so please test again after major macOS updates.")
             }
         }

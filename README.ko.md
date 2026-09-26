@@ -183,7 +183,7 @@ LidOn 자체는 대기 중 CPU를 0.1~0.3% 정도 써요. 애니메이션은 Lid
 이 스위치는 재부팅해도 남기 때문에 앱을 켜고 끌 때와 워치독 복구 때도 꺼요. 이 스위치는 root 권한이 필요해서, 설치할 때
 `pmset -a disablesleep 0`과 `1` 두 명령만 허용하는 규칙 하나(`/etc/sudoers.d/lidon`)를 추가해요. 다른 권한은 없어요.
 건너뛰었다면 LidOn 메뉴에서 나중에 마치거나 `lidon system-setup`을 실행하세요. 그 전까지는 전원이 연결된 동안만 버틸 수 있고,
-전원을 빼면 Mac이 잠들어요. `brew uninstall`을 하면 규칙도 지워지고, 직접 지우려면 `lidon system-setup --remove`를 쓰세요.
+전원을 빼면 Mac이 잠들어요. LidOn을 제거하면 규칙도 함께 지워지고(아래 '제거' 참고), 규칙만 지우려면 `lidon system-setup --remove`를 쓰세요.
 
 **macOS 업데이트 후에도 되나요?**
 공개되지 않은 인터페이스를 쓰기 때문에 바뀔 수 있어요. 큰 업데이트 뒤에는 한 번 확인해 보시고, 문제가 있으면 [이슈](https://github.com/jayden0903/LidOn/issues)로 알려 주세요.
@@ -198,6 +198,16 @@ LidOn 자체는 대기 중 CPU를 0.1~0.3% 정도 써요. 애니메이션은 Lid
 - 상태 머신(`Sources/LidOnCore/Engine.swift`)은 시스템 호출 없는 순수 로직이라 단위 테스트로 검증해요.
 
 ⚠️ 공개되지 않은 macOS 인터페이스를 사용하므로 macOS를 크게 업데이트한 뒤에는 한 번 다시 테스트해 주세요.
+
+## 제거
+
+```bash
+brew uninstall --zap --cask lidon      # Homebrew로 설치했을 때
+lidon uninstall                        # 설치 스크립트나 zip으로 설치했을 때
+```
+
+또는 *설정 → 정보 → LidOn 제거…*를 누르세요. 어느 방법이든 설치할 때 추가한 시스템 설정(`/etc/sudoers.d/lidon`),
+에이전트 연결, 기록, 설정까지 함께 지워요. 실행 중인 LidOn.app을 휴지통으로 옮기기만 해도 나머지를 지울지 물어봐요.
 
 ## 소스에서 빌드
 
