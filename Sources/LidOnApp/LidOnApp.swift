@@ -58,6 +58,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                                       L("Fn released — close within %d seconds to keep running", 3),
                                                                       deadline: Date().addingTimeInterval(4.5)))
                 .frame(width: 900, height: 620).background(Color.black))),
+            ("overlay-cancelled", AnyView(OverlayView(model: .preview(.fnHint, L("Cancelled"), L("Another key or the mouse was used"),
+                                                                      cancelled: true))
+                .frame(width: 900, height: 620).background(Color.black))),
             ("macbook-half", AnyView(MacBookShape(width: 300, lid: 0.55).padding(30).background(Color.black))),
             ("macbook-closed", AnyView(MacBookShape(width: 300, lid: 1).padding(30).background(Color.black))),
             ("overlay-on", AnyView(OverlayView(model: .preview(.confirm, L("LidOn is on"),

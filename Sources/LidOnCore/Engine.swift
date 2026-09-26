@@ -18,14 +18,19 @@ public struct EngineConfig: Equatable, Sendable {
 
 public struct EngineInput: Sendable {
     public var now: Date
+    /// Fn(🌐) 키 자체가 눌려 있는가
     public var fnDown: Bool
+    /// Fn 제스처 도중(누르는 중·유예 시간) 다른 키, 마우스 이동·클릭·스크롤이 있었는가 → 즉시 취소
+    public var fnInterrupted: Bool
     public var lidClosed: Bool
     /// 새로 읽은 전원 상태 (없으면 이전 값 유지)
     public var power: PowerStatus?
     /// 활성화된 에이전트/터미널 요청의 사유 목록
     public var requests: [String]
 
-    public init(now: Date, fnDown: Bool = false, lidClosed: Bool, power: PowerStatus? = nil, requests: [String] = []) {
+    public init(now: Date, fnDown: Bool = false, fnInterrupted: Bool = false, lidClosed: Bool, power: PowerStatus? = nil,
+                requests: [String] = []) {
+        self.fnInterrupted = fnInterrupted
         self.now = now
         self.fnDown = fnDown
         self.lidClosed = lidClosed
@@ -36,7 +41,10 @@ public struct EngineInput: Sendable {
 
 public enum EngineEvent: Equatable, Sendable {
     case fnArmed
+    /// Fn을 뗐다 (유예 시간 시작) 또는 뚜껑이 닫혀 끝났다
     case fnDisarmed
+    /// 다른 입력 때문에 Fn 제스처가 취소됐다
+    case fnCancelled
     case sealed(Set<Trigger>)
     /// 무장된 상태로 뚜껑이 닫혔지만 안전장치 조건 때문에 봉인하지 않음
     case refusedToSeal(EndReason)
@@ -69,6 +77,8 @@ public struct Engine: Sendable {
 
     private var fnDownAt: Date?
     private var fnReleasedAt: Date?
+    /// 취소된 뒤에는 Fn을 뗐다가 다시 눌러야 다시 켜진다 (Fn+E 같은 단축키가 켜지지 않게)
+    private var fnBlocked = false
     private var manualEndedByTimer = false
 
     public init(config: EngineConfig = EngineConfig(), lidClosed: Bool = false) {
@@ -77,6 +87,14 @@ public struct Engine: Sendable {
     }
 
     public var isSealed: Bool { session != nil }
+
+    /// Fn을 뗀 뒤 유예 시간 안인가
+    public func fnInGrace(now: Date) -> Bool {
+        fnReleasedAt.map { now.timeIntervalSince($0) < config.fnGrace } ?? false
+    }
+
+    /// Fn 제스처가 진행 중인가 (누르는 중·켜짐·유예 시간) — 앱이 방해 입력을 감시할지 정한다
+    public func fnGestureActive(now: Date) -> Bool { fnDownAt != nil || fnArmed || fnInGrace(now: now) }
 
     /// 지금 뚜껑을 닫으면 봉인되게 만드는 이유들
     public func armTriggers(now: Date) -> Set<Trigger> {
@@ -140,7 +158,19 @@ public struct Engine: Sendable {
 
         // Fn 제스처
         let fnDown = config.fnGesture && input.fnDown
-        if fnDown {
+
+        // 다른 입력이 끼어들면 제스처 전체(누르는 중, 켜짐, 유예 시간)를 즉시 취소한다
+        if input.fnInterrupted, fnDownAt != nil || fnArmed || fnInGrace(now: now) {
+            let wasVisible = fnArmed || fnInGrace(now: now)
+            fnArmed = false
+            fnDownAt = nil
+            fnReleasedAt = nil
+            fnBlocked = fnDown
+            if wasVisible { events.append(.fnCancelled) }
+        }
+        if fnBlocked {
+            if !fnDown { fnBlocked = false }
+        } else if fnDown {
             if fnDownAt == nil { fnDownAt = now }
             if !fnArmed, !lidClosed, let t = fnDownAt, now.timeIntervalSince(t) >= config.fnHoldThreshold {
                 fnArmed = true

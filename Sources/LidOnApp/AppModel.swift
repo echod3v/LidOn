@@ -172,31 +172,46 @@ final class AppModel: ObservableObject {
 
     /// Fn(🌐) 키의 키 코드: kVK_Function(63), 일부 최신 키보드의 🌐 키(179)
     private static let fnKeyCodes: [CGKeyCode] = [63, 179]
+    /// Caps Lock은 켜진 상태가 "눌림"으로 보일 수 있어 제외한다
+    private static let capsLock: CGKeyCode = 57
 
-    /// Fn(🌐)만 단독으로 눌려 있는가.
-    ///
-    /// 수정 키 플래그(flagsState)는 쓰지 않는다. 그 값은 "마지막 키 입력에 붙어 있던 플래그"라서,
-    /// 화살표·Home/End·F키를 누르고 떼면 Fn 플래그가 다음 입력 전까지 남는다 (실제로 화살표 오작동의 원인).
-    /// 대신 Fn 키 자체와 다른 키들의 실제 눌림 상태를 읽는다 — 이 값은 입력 모니터링 권한 없이도 정확하다.
-    private static func isFnHeldAlone() -> Bool {
-        func down(_ key: CGKeyCode) -> Bool {
-            CGEventSource.keyState(.hidSystemState, key: key) || CGEventSource.keyState(.combinedSessionState, key: key)
-        }
-        let fn = fnKeyCodes.contains(where: down)
-        var otherKeys: [CGKeyCode] = []
-        if fn || FnDiagnostics.enabled {
-            for key in CGKeyCode(0)..<256 where !modifierKeyCodes.contains(key) && !fnKeyCodes.contains(key) && down(key) {
-                otherKeys.append(key)
-            }
-        }
-        let alone = fn && otherKeys.isEmpty
-        FnDiagnostics.record(fnKey: fn, flags: CGEventSource.flagsState(.combinedSessionState), otherKeys: otherKeys, accepted: alone)
-        return alone
+    private static func keyDown(_ key: CGKeyCode) -> Bool {
+        CGEventSource.keyState(.hidSystemState, key: key) || CGEventSource.keyState(.combinedSessionState, key: key)
     }
 
+    /// Fn 키 자체가 눌려 있는가.
+    /// 수정 키 플래그(flagsState)는 쓰지 않는다 — "마지막 입력의 플래그"라서 화살표·F키를 누르고 떼면 Fn 플래그가 남는다.
+    /// 키의 실제 눌림 상태는 입력 모니터링 권한 없이도 정확하다.
+    private static func fnKeyDown() -> Bool { fnKeyCodes.contains(where: keyDown) }
+
+    /// Fn 제스처 도중 다른 입력이 있었는가: 다른 키(수정 키 포함), 마우스 이동·클릭, 스크롤
+    private static func otherInput(since anchor: NSPoint) -> (Bool, [CGKeyCode]) {
+        var keys: [CGKeyCode] = []
+        for key in CGKeyCode(0)..<256 where !fnKeyCodes.contains(key) && key != capsLock && keyDown(key) { keys.append(key) }
+        let p = NSEvent.mouseLocation
+        let moved = hypot(p.x - anchor.x, p.y - anchor.y) > 6
+        let clicked = NSEvent.pressedMouseButtons != 0
+        let scrolled = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .scrollWheel) < 0.15
+        return (!keys.isEmpty || moved || clicked || scrolled, keys)
+    }
+
+    /// Fn 제스처가 시작될 때의 마우스 위치 (이만큼 움직이면 취소)
+    private var fnMouseAnchor: NSPoint?
+
     private func tick(power: PowerStatus? = nil) {
-        let fnDown = settings.fnGesture && Self.isFnHeldAlone()
-        let input = EngineInput(now: Date(), fnDown: fnDown, lidClosed: lid.isLidClosed, power: power,
+        let now = Date()
+        let fnKey = settings.fnGesture && Self.fnKeyDown()
+        var interrupted = false
+        if settings.fnGesture && (fnKey || engine.fnGestureActive(now: now)) {
+            let anchor = fnMouseAnchor ?? NSEvent.mouseLocation
+            fnMouseAnchor = anchor
+            let (other, keys) = Self.otherInput(since: anchor)
+            interrupted = other
+            FnDiagnostics.record(fnKey: fnKey, otherKeys: keys, interrupted: other)
+        } else {
+            fnMouseAnchor = nil
+        }
+        let input = EngineInput(now: now, fnDown: fnKey, fnInterrupted: interrupted, lidClosed: lid.isLidClosed, power: power,
                                 requests: sortedHolds.map(\.label))
         let wasClosed = engine.lidClosed
         handle(engine.step(input))
@@ -254,6 +269,8 @@ final class AppModel: ObservableObject {
                     let grace = engine.config.fnGrace
                     overlay.countdown(grace, subtitle: L("Fn released — close within %d seconds to keep running", Int(grace)))
                 }
+            case .fnCancelled:
+                overlay.cancel(title: L("Cancelled"), subtitle: L("Another key or the mouse was used"))
             case .sealed:
                 overlay.hide(animated: false)
                 lastMessage = nil
@@ -515,10 +532,9 @@ enum FnDiagnostics {
     private static var last = ""
     static var enabled: Bool { UserDefaults.standard.bool(forKey: "debugFn") }
 
-    static func record(fnKey: Bool, flags: CGEventFlags, otherKeys: [CGKeyCode], accepted: Bool) {
-        guard enabled, fnKey || flags.contains(.maskSecondaryFn) || !otherKeys.isEmpty else { return }
-        let line = String(format: "fnKey=%@ flags=0x%llx keys=%@ → %@", fnKey ? "down" : "up", flags.rawValue,
-                          otherKeys.map(String.init).joined(separator: ","), accepted ? "Fn" : "ignored")
+    static func record(fnKey: Bool, otherKeys: [CGKeyCode], interrupted: Bool) {
+        guard enabled else { return }
+        let line = "fnKey=\(fnKey ? "down" : "up") keys=\(otherKeys.map(String.init).joined(separator: ",")) interrupted=\(interrupted)"
         guard line != last else { return }   // 같은 상태는 한 번만
         last = line
         let url = LidOnPaths.supportDir.appendingPathComponent("fn-debug.log")

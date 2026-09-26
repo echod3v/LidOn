@@ -7,19 +7,22 @@ final class EngineTests: XCTestCase {
     var now: Date!
     var lid = false
     var fn = false
+    var interrupt = false
 
     override func setUp() {
         engine = Engine()
         now = t0
         lid = false
         fn = false
+        interrupt = false
         requests = []
     }
 
     @discardableResult
     func step(after dt: TimeInterval = 0.1, power: PowerStatus? = nil) -> [EngineEvent] {
         now = now.addingTimeInterval(dt)
-        return engine.step(EngineInput(now: now, fnDown: fn, lidClosed: lid, power: power, requests: requests))
+        return engine.step(EngineInput(now: now, fnDown: fn, fnInterrupted: interrupt, lidClosed: lid, power: power,
+                                       requests: requests))
     }
 
     func ended(_ events: [EngineEvent]) -> SessionRecord? {
@@ -86,6 +89,62 @@ final class EngineTests: XCTestCase {
         XCTAssertFalse(engine.isSealed)
         XCTAssertTrue(ev.isEmpty)
         XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+    }
+
+    // MARK: - Fn 취소 (다른 키, 마우스)
+
+    func testOtherInputWhileHoldingFnCancels() {
+        fn = true
+        step(); step(after: 0.5)
+        XCTAssertTrue(engine.fnArmed)
+        interrupt = true
+        XCTAssertEqual(step(), [.fnCancelled])
+        interrupt = false
+        XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+        // Fn을 계속 누르고 있어도 다시 켜지지 않는다
+        step(after: 1)
+        XCTAssertFalse(engine.fnArmed)
+        lid = true
+        XCTAssertFalse(step().contains(.sealed([.fn])))
+    }
+
+    func testFnMustBeReleasedAfterCancel() {
+        fn = true
+        step(); step(after: 0.5)
+        interrupt = true
+        step()
+        interrupt = false
+        fn = false
+        step()                       // 뗐다가
+        XCTAssertFalse(engine.wantsLidSleepDisabled(now: now), "취소는 유예 시간도 없앤다")
+        fn = true
+        step(); step(after: 0.5)     // 다시 누르면 다시 켜진다
+        XCTAssertTrue(engine.fnArmed)
+    }
+
+    func testInputDuringGraceCancels() {
+        fn = true
+        step(); step(after: 0.5)
+        fn = false
+        step()                       // 유예 시간 시작
+        XCTAssertTrue(engine.fnGestureActive(now: now))
+        interrupt = true             // 마우스를 움직임
+        XCTAssertEqual(step(after: 0.5), [.fnCancelled])
+        interrupt = false
+        lid = true
+        XCTAssertFalse(step(after: 0.5).contains(.sealed([.fn])), "취소된 뒤에는 3초 안에 닫아도 잠든다")
+        XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+    }
+
+    func testFnShortcutNeverArms() {
+        // Fn+E(이모지)처럼 Fn과 다른 키를 함께 누르면 켜지지 않는다 (안내도 뜨지 않았으므로 취소 이벤트도 없다)
+        fn = true
+        step()
+        interrupt = true
+        XCTAssertTrue(step(after: 0.1).isEmpty)
+        interrupt = false
+        step(after: 1)
+        XCTAssertFalse(engine.fnArmed)
     }
 
     func testFnDisabledInSettings() {
@@ -272,6 +331,7 @@ final class EngineTests: XCTestCase {
         lid = true
         stepR()
         fn = false
+        interrupt = false
         requests = []
         XCTAssertNil(ended(stepR(after: 600)), "Fn으로 닫았다면 뚜껑을 열 때까지 유지")
     }

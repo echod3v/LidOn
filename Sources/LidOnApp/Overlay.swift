@@ -11,15 +11,19 @@ final class OverlayModel: ObservableObject {
     /// Fn을 뗀 뒤 유예 시간 — 이 시각 안에 뚜껑을 닫으면 계속 실행된다
     @Published var deadline: Date?
     @Published var graceDuration: TimeInterval = 3
+    /// 다른 입력으로 취소됨 — 잠깐 보여 주고 사라진다
+    @Published var cancelled = false
 
     /// 캡처용 미리보기
-    static func preview(_ kind: Kind, _ title: String, _ subtitle: String, deadline: Date? = nil) -> OverlayModel {
+    static func preview(_ kind: Kind, _ title: String, _ subtitle: String, deadline: Date? = nil,
+                        cancelled: Bool = false) -> OverlayModel {
         let m = OverlayModel()
         m.kind = kind
         m.title = title
         m.subtitle = subtitle
         m.deadline = deadline
         m.graceDuration = 3
+        m.cancelled = cancelled
         return m
     }
 }
@@ -38,6 +42,7 @@ final class OverlayController {
             model.title = title
             model.subtitle = subtitle
             model.deadline = nil
+            model.cancelled = false
         }
         if !isShowing { present() }
         if let t = autoHide { scheduleHide(after: t) }
@@ -52,6 +57,18 @@ final class OverlayController {
             model.deadline = Date().addingTimeInterval(seconds)
         }
         scheduleHide(after: seconds)
+    }
+
+    /// 다른 키·마우스 입력으로 취소: 짧게 "취소됨"을 보여 주고 사라진다
+    func cancel(title: String, subtitle: String) {
+        guard isShowing, !model.cancelled else { return }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            model.cancelled = true
+            model.deadline = nil
+            model.title = title
+            model.subtitle = subtitle
+        }
+        scheduleHide(after: 0.55)
     }
 
     func hide(animated: Bool = true) {
@@ -111,7 +128,9 @@ struct OverlayView: View {
             VStack(spacing: 30) {
                 Group {
                     if model.kind == .fnHint {
-                        LaptopGlyph(width: 250, animating: true)
+                        LaptopGlyph(width: 250, animating: !model.cancelled)
+                            .saturation(model.cancelled ? 0.2 : 1)
+                            .scaleEffect(model.cancelled ? 0.92 : 1)
                     } else {
                         StatusOrb(state: .armed, size: 150, symbol: "bolt.fill")
                     }
@@ -123,6 +142,7 @@ struct OverlayView: View {
                     Text(model.title)
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                        .contentTransition(.opacity)
                     Text(model.subtitle)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.white.opacity(0.72))
@@ -133,7 +153,7 @@ struct OverlayView: View {
                 .opacity(appear ? 1 : 0)
 
                 if model.kind == .fnHint {
-                    FnKeycap(deadline: model.deadline, duration: model.graceDuration)
+                    FnKeycap(deadline: model.deadline, duration: model.graceDuration, cancelled: model.cancelled)
                         .offset(y: appear ? 0 : 18)
                         .opacity(appear ? 1 : 0)
                 }
@@ -150,7 +170,9 @@ struct OverlayView: View {
 private struct FnKeycap: View {
     var deadline: Date?
     var duration: TimeInterval
+    var cancelled = false
     @State private var pulse = false
+    @State private var shake: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -175,11 +197,19 @@ private struct FnKeycap: View {
                 }
                 .transition(.scale.combined(with: .opacity))
             }
-            VStack(spacing: 4) {
-                Text(verbatim: "fn").font(.system(size: 15, weight: .semibold, design: .rounded))
-                Image(systemName: "globe").font(.system(size: 14, weight: .medium))
+            Group {
+                if cancelled {
+                    Image(systemName: "xmark").font(.system(size: 22, weight: .bold))
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    VStack(spacing: 4) {
+                        Text(verbatim: "fn").font(.system(size: 15, weight: .semibold, design: .rounded))
+                        Image(systemName: "globe").font(.system(size: 14, weight: .medium))
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                }
             }
-            .foregroundStyle(.white.opacity(deadline == nil ? 0.95 : 0.6))
+            .foregroundStyle(cancelled ? Theme.coral : .white.opacity(deadline == nil ? 0.95 : 0.6))
             .frame(width: 58, height: 58)
             .background(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
@@ -187,15 +217,26 @@ private struct FnKeycap: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(deadline == nil ? Theme.mint.opacity(0.9) : .white.opacity(0.2), lineWidth: 1.5)
+                    .strokeBorder(cancelled ? Theme.coral.opacity(0.9) : deadline == nil ? Theme.mint.opacity(0.9) : .white.opacity(0.2),
+                                  lineWidth: 1.5)
             )
-            .shadow(color: Theme.mint.opacity(deadline == nil ? (pulse ? 0.7 : 0.25) : 0), radius: pulse ? 16 : 6)
+            .shadow(color: cancelled ? Theme.coral.opacity(0.5)
+                        : Theme.mint.opacity(deadline == nil ? (pulse ? 0.7 : 0.25) : 0), radius: pulse ? 16 : 6)
             // 눌려 있는 동안은 살짝 내려가 있고, 떼면 올라온다
             .scaleEffect(deadline == nil ? (pulse ? 0.95 : 0.98) : 1)
-            .offset(y: deadline == nil ? 2 : 0)
+            .offset(x: shake, y: deadline == nil && !cancelled ? 2 : 0)
+        }
+        .onChange(of: cancelled) { _, now in
+            guard now else { return }
+            // 취소: 좌우로 짧게 흔든다
+            withAnimation(.spring(response: 0.12, dampingFraction: 0.25)) { shake = 9 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.4)) { shake = 0 }
+            }
         }
         .frame(height: 130)
         .animation(Theme.spring, value: deadline)
+        .animation(Theme.spring, value: cancelled)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) { pulse = true }
         }
