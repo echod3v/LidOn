@@ -56,6 +56,12 @@ private struct DemoFrame: View {
         }
     }
 
+    /// 닫힌 동안 아래에서 번지는 "실행 중" 빛
+    private var glow: Double {
+        guard t >= 1.8, t < 3.8 else { return 0 }
+        return min(1, (t - 1.8) / 0.4, (3.8 - t) / 0.3) * (0.85 + 0.15 * sin((t - 1.8) * 2 * .pi / 1.6))
+    }
+
     private var caption: (String, String) {
         switch t {
         case ..<1.8: return ("Close the lid.", "Hold Fn — or let your AI agent ask for it")
@@ -72,7 +78,7 @@ private struct DemoFrame: View {
             RadialGradient(colors: [Theme.teal.opacity(running ? 0.55 : 0.3), .clear], center: UnitPoint(x: 0.5, y: 0.52),
                            startRadius: 0, endRadius: 330)
             VStack(spacing: 22) {
-                MacBookShape(width: 380, lid: lid)
+                MacBookShape(width: 380, lid: lid, glow: glow)
                 VStack(spacing: 6) {
                     Text(caption.0).font(.system(size: 30, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     Text(caption.1).font(.system(size: 16, weight: .medium)).foregroundStyle(.white.opacity(0.65))

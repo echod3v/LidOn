@@ -128,7 +128,7 @@ struct OverlayView: View {
             VStack(spacing: 30) {
                 Group {
                     if model.kind == .fnHint {
-                        LaptopGlyph(width: 250, animating: !model.cancelled)
+                        LaptopGlyph(width: 250, motion: .closeOnce, animating: !model.cancelled)
                             .saturation(model.cancelled ? 0.2 : 1)
                             .scaleEffect(model.cancelled ? 0.92 : 1)
                     } else {

@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                                       cancelled: true))
                 .frame(width: 900, height: 620).background(Color.black))),
             ("macbook-half", AnyView(MacBookShape(width: 300, lid: 0.55).padding(30).background(Color.black))),
-            ("macbook-closed", AnyView(MacBookShape(width: 300, lid: 1).padding(30).background(Color.black))),
+            ("macbook-closed", AnyView(MacBookShape(width: 300, lid: 1, glow: 1).padding(30).background(Color.black))),
             ("overlay-on", AnyView(OverlayView(model: .preview(.confirm, L("LidOn is on"),
                                                                L("You can close the lid — your work keeps running")))
                 .frame(width: 900, height: 620).background(Color.black))),
