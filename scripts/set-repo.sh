@@ -7,7 +7,7 @@ NEW=${1:?usage: scripts/set-repo.sh <owner/name>}
 OLD=$(sed -n 's/^GITHUB_REPO="\(.*\)"/\1/p' scripts/config.sh)
 OLD_OWNER=${OLD%%/*}
 NEW_OWNER=${NEW%%/*}
-for f in scripts/config.sh install.sh README.md README.en.md plugin/.claude-plugin/plugin.json plugin/.mcp.json; do
+for f in scripts/config.sh install.sh README.md README.ko.md plugin/.claude-plugin/plugin.json plugin/.mcp.json; do
   sed -i '' -e "s|$OLD|$NEW|g" -e "s|$OLD_OWNER/tap|$NEW_OWNER/tap|g" "$f"
 done
 echo "✓ $OLD → $NEW  (Homebrew tap: $NEW_OWNER/tap)"

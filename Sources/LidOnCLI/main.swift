@@ -169,8 +169,11 @@ case "agent-docs":
     print(AgentSetup.agentDocs)
 
 case "version", "--version", "-v":
+    // CLI는 LidOn.app/Contents/Helpers/lidon 에 있다 → 번들의 Info.plist에서 버전을 읽는다
+    let plist = URL(fileURLWithPath: cliPath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Info.plist")
+    let cliVersion = (NSDictionary(contentsOf: plist)?["CFBundleShortVersionString"] as? String) ?? "dev"
     let r = try? IPCClient.send(IPCRequest(cmd: "status"))
-    print("lidon CLI 1.0" + (r?.status.map { " (app \($0.version))" } ?? ""))
+    print("lidon \(cliVersion)" + (r?.status.map { " (app \($0.version) running)" } ?? " (app not running)"))
 
 case "help", "--help", "-h":
     print(usage)

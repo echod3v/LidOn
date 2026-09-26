@@ -139,7 +139,6 @@ struct MenuBarIcon: View {
     var body: some View {
         Image(systemName: Self.symbol(model.ui))
             .contentTransition(.symbolEffect(.replace))
-            .symbolEffect(.pulse, options: .repeating, isActive: model.ui.state == "sealed")
     }
 
     static func symbol(_ ui: UIState) -> String {

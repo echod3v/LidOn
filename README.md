@@ -1,191 +1,173 @@
-<p align="center"><img src="Resources/AppIcon.png" width="128" alt="LidOn"></p>
+<p align="center"><img src="Resources/AppIcon.png" width="128" alt="LidOn icon"></p>
 
 <h1 align="center">LidOn</h1>
 
-<p align="center"><b>맥북 뚜껑을 닫아도 코딩 에이전트와 작업이 계속 돌아가게 해 주는 무료 메뉴 막대 앱</b><br>
-Claude Code · Codex · Cursor · 빌드 · 다운로드 — 외부 모니터나 충전기 없이</p>
-
-<p align="center"><a href="README.en.md">English</a></p>
+<p align="center"><b>Close the lid. Keep working.</b><br>
+A free, open-source macOS menu bar app that keeps your MacBook — and your AI coding agents — running with the lid closed.<br>
+No external display, no charger, no <code>sudo</code>.</p>
 
 <p align="center">
-  <img src="docs/screenshots/menu.png" width="330" alt="Menu">
-  &nbsp;
-  <img src="docs/screenshots/welcome.png" width="330" alt="Welcome">
-</p>
-<p align="center">
-  <img src="docs/screenshots/overlay-fn.jpg" width="680" alt="Hold Fn and close the lid">
+  <a href="https://github.com/echod3v/LidOn/releases/latest"><img src="https://img.shields.io/github/v/release/echod3v/LidOn?color=14a0b4" alt="Release"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-555" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/license-MIT-555" alt="MIT">
+  <a href="README.ko.md"><img src="https://img.shields.io/badge/README-한국어-555" alt="한국어"></a>
 </p>
 
----
+<p align="center"><img src="docs/media/demo.gif" width="640" alt="Close the lid — LidOn keeps the Mac running"></p>
 
-## 특징
+## Why
 
-| | LidOn |
-|---|---|
-| 가격 | **무료, 오픈 소스 (MIT)** |
-| Fn(🌐)을 누른 채 뚜껑 닫기 | ✅ 전체 화면 애니메이션으로 확인 |
-| **AI 에이전트가 직접 켜고 끄기** (MCP · Claude Code 플러그인/스킬) | ✅ 사유·시간 지정, 끝나면 잠자기 |
-| 수동 토글 (끌 때까지 / 30분~8시간) | ✅ |
-| 발열 · 배터리 온도 · 배터리 잔량 보호 | ✅ 한계값 조절 가능 |
-| 최대 실행 시간 / 타이머 | ✅ |
-| **앱이 죽거나 멈춰도 잠자기 자동 복구 (워치독)** | ✅ |
-| **휴대폰 알림** (ntfy · Slack · Discord · 웹훅) | ✅ |
-| **터미널 명령어** `lidon run -- npm test` | ✅ 명령이 끝나면 잠자기 |
-| 전역 단축키 ⌃⌥⌘L, URL 스킴 `lidon://on` | ✅ |
-| 세션 기록과 배터리 소모 통계 | ✅ |
-| sudo / 관리자 권한 | 필요 없음 |
-| 한국어 · 영어 | ✅ |
+You start a long build, a test suite, a download — or you hand a task to Claude Code or Codex — and then you need to
+close the lid and walk away. A MacBook goes to sleep and everything stops. `caffeinate` doesn't help once the lid closes,
+and `pmset disablesleep` needs `sudo` and stays on until you remember to turn it off.
 
-## 설치
+LidOn keeps the Mac running only while there's a reason to, and lets it sleep again as soon as that reason is gone.
 
-**설치 스크립트 (권장)**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
-```
-
-`/Applications`에 설치하고 `lidon` 명령어를 연결한 뒤 실행해요.
-
-**Homebrew**
+## Install
 
 ```bash
 brew install --cask echod3v/tap/lidon
 ```
 
-**직접 다운로드**
-
-[Releases](https://github.com/echod3v/LidOn/releases)에서 `LidOn-x.y.z.zip`을 받아 압축을 풀고 응용 프로그램 폴더로 옮기세요.
-LidOn은 Apple 개발자 서명이 없는 무료 앱이라 처음 열 때 경고가 떠요. 아래 둘 중 하나로 허용하세요.
-
-- **시스템 설정 → 개인정보 보호 및 보안** 아래쪽에서 **"그래도 열기"** 클릭
-- 또는 터미널에서: `xattr -dr com.apple.quarantine /Applications/LidOn.app`
-
-요구 사항: macOS 14 Sonoma 이상, 뚜껑이 있는 MacBook (Apple Silicon · Intel)
-
-## 사용법
-
-| 방법 | 동작 |
-|---|---|
-| **Fn(🌐)을 누른 채 뚜껑 닫기** | 0.5초 이상 누르면 화면에 안내가 뜨고, 그 상태로 닫으면 계속 실행 |
-| **에이전트의 요청** | 에이전트가 `keep_awake`를 부르면 준비돼요 (아래 참고) |
-| **메뉴 막대 → 뚜껑 닫아도 계속 실행** | 끌 때까지 또는 30분~8시간 동안 |
-| **⌃⌥⌘L** | 어디서든 켜고 끄기 |
-| **터미널** | 아래 참고 |
-
-뚜껑을 닫으면 화면이 잠기고 디스플레이가 꺼져요. 다시 열면 평소 잠자기 설정으로 돌아가요.
-뚜껑이 닫혀 있는 동안 에이전트가 요청을 풀거나, 명령이 끝나거나, 안전장치가 작동하면 Mac이 스스로 잠들어요.
-Fn으로 닫았거나 수동 토글을 켰다면 뚜껑을 열 때까지(또는 끌 때까지) 유지돼요.
-
-### 터미널 명령어
+or
 
 ```bash
-lidon run -- npm test                      # 명령이 실행되는 동안만 켜 두고, 끝나면 잠자기
-lidon keep --for 2h --reason "데이터 이전"   # 2시간 동안 켜 두기 → id 출력 (최대 12시간)
-lidon release <id>                         # 다시 잠들 수 있게
-lidon wait 12345                           # PID 12345 프로세스가 끝날 때까지 켜 두기
-lidon notify "빌드 끝남"                    # Mac + 휴대폰 알림
-lidon on --for 2h / lidon off              # 수동 토글
-lidon login-item on                        # 로그인 시 자동 실행
-lidon status [--json]
+curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
 ```
 
-`lidon`은 설치 스크립트나 Homebrew가 연결해 줘요. 직접 설치했다면 **설정 → 정보 → lidon 명령어 설치**를 누르세요.
+Both install `LidOn.app` into `/Applications` and put the `lidon` command on your `PATH`.
+You can also download the zip from [Releases](https://github.com/echod3v/LidOn/releases/latest) — LidOn isn't notarized yet,
+so the first time, open **System Settings → Privacy & Security** and click **Open Anyway**.
 
-URL 스킴: `open "lidon://on?for=90m"`, `lidon://off`, `lidon://toggle` (단축어 앱이나 Raycast에서 쓸 수 있어요)
+Requires macOS 14 Sonoma or later on a MacBook (Apple silicon or Intel).
 
-### AI 에이전트 연결
+## Three ways to keep it running
 
-LidOn은 에이전트가 일하는지 추측하지 않아요. 대신 **에이전트가 직접** "깨워 둬"라고 요청하고, 끝나면 풀어요.
-에이전트는 MCP 도구 네 개를 받아요.
+| | How | Ends when |
+|---|---|---|
+| **Fn gesture** | Hold **Fn (🌐)** for half a second, then close the lid. You can let go of Fn — you have 3 seconds. | You open the lid |
+| **Toggle** | Menu bar → *Keep running with lid closed*, for a set time or until you turn it off. Or press **⌃⌥⌘L**. | You turn it off or the timer ends |
+| **Agents & terminal** | An AI agent calls `keep_awake`, or you run `lidon run -- <command>`. | The work finishes, the time runs out, or the agent session ends |
 
-| 도구 | 하는 일 |
+When the lid closes, LidOn locks the screen and turns the display off. When you open it, normal sleep is back.
+Pressing another key or moving the mouse while the Fn gesture is active cancels it.
+
+<p align="center">
+  <img src="docs/screenshots/menu.png" width="330" alt="Menu">
+  &nbsp;
+  <img src="docs/screenshots/overlay-countdown.jpg" width="440" alt="Fn gesture countdown">
+</p>
+
+## AI agents
+
+LidOn doesn't guess whether an agent is busy. Agents ask for it themselves through an MCP server that ships with the app:
+
+| Tool | What it does |
 |---|---|
-| `keep_awake(reason, minutes)` | 사유와 시간(기본 60분, 최대 12시간)을 걸고 Mac을 깨워 둬요 |
-| `allow_sleep()` | 요청을 풀어요. 뚜껑이 닫혀 있으면 Mac이 잠들어요 |
-| `lidon_status()` | 뚜껑, 배터리, 온도, 활성 요청을 알려 줘요 |
-| `notify(message)` | Mac과 휴대폰으로 알려요 |
+| `keep_awake(reason, minutes)` | Keep the Mac awake for a reason and a time limit (max 12 h). Replies with when it expires and any warnings (low battery, no phone notifications). |
+| `allow_sleep()` | Release the request. If the lid is closed, the Mac goes to sleep. |
+| `lidon_status()` | Lid, battery, temperature and active requests. |
+| `notify(message)` | Notify you on the Mac and on your phone — and says where it actually got delivered. |
 
-요청은 에이전트가 `allow_sleep`을 부르거나, 시간이 지나거나, **에이전트 세션이 끝나면(크래시 포함) 자동으로** 풀려요.
-메뉴 막대에서 요청을 직접 취소할 수도 있어요.
+A request is released when the agent calls `allow_sleep`, when its time runs out, or when the agent session ends — even if it crashes.
+A skill tells the agent when to use it: before work that may take ~5 minutes or more, whenever you ask, or when you say you're stepping away.
 
-**Claude Code — 플러그인 (MCP + 스킬)**
+**Claude Code** — plugin (MCP server + skill):
 
 ```
 /plugin marketplace add echod3v/LidOn
 /plugin install lidon@lidon
 ```
 
-스킬이 Claude에게 언제 `keep_awake`/`allow_sleep`을 써야 하는지 알려 줘요.
-
-**한 번에 연결 (Claude Code · Codex · Cursor)**
+**Or connect in one command** (also in *Settings → Agents*):
 
 ```bash
-lidon setup claude     # MCP 서버(user scope) + 스킬 + LidOn 도구 자동 허용(mcp__lidon)
-lidon setup codex      # ~/.codex/config.toml 에 [mcp_servers.lidon] + 스킬(~/.agents/skills/lidon)
+lidon setup claude     # MCP server (user scope) + skill; LidOn's own tools run without prompts
+lidon setup codex      # ~/.codex/config.toml + skill in ~/.agents/skills
 lidon setup cursor     # ~/.cursor/mcp.json
-lidon setup --print    # 파일을 바꾸지 않고 설정 조각만 출력
+lidon setup --print    # print the config snippets instead
 ```
 
-연결하면 에이전트는 약 5분 이상 걸릴 작업 전에 **묻지 않고 알아서** `keep_awake`를 걸고, 끝나면 풀어요.
-Claude Code에서는 LidOn 도구 4개만 승인 없이 쓰도록 허용해요 (`lidon run`으로 감싼 셸 명령은 평소처럼 승인을 받아요).
+Any other MCP client: register `lidon mcp` as a stdio server. Agents without MCP: paste `lidon agent-docs` into your `CLAUDE.md` or `AGENTS.md`.
 
-앱의 **설정 → 에이전트**에서도 버튼으로 연결할 수 있어요. 바꾸는 파일은 `.lidon-backup`으로 백업돼요.
-다른 MCP 클라이언트는 `lidon mcp`를 stdio 서버로 등록하면 돼요.
-
-MCP를 쓰지 않는 에이전트는 `lidon agent-docs` 출력을 프로젝트의 `CLAUDE.md`나 `AGENTS.md`에 붙여 넣으세요.
-에이전트가 `lidon run -- <명령>`, `lidon keep`, `lidon notify`를 쓰게 돼요.
-
-### 휴대폰 알림
-
-**설정 → 알림**에서 서비스를 고르세요. 가장 쉬운 건 [ntfy](https://ntfy.sh)예요.
-
-1. 휴대폰에 ntfy 앱을 설치하고, 남들이 추측하기 어려운 토픽(예: `lidon-a8f3k2`)을 구독해요.
-2. LidOn에서 서비스를 **ntfy**로 고르고 URL에 `https://ntfy.sh/lidon-a8f3k2`를 넣어요.
-3. **테스트 보내기**로 확인해요.
-
-에이전트가 `notify`를 부를 때, 그리고 요청이 끝나거나 안전장치가 작동해서 Mac이 잠들기 직전에 알림을 보내요.
-잠들기 전에는 전송을 위해 최대 6초 기다려요.
-
-## 안전
-
-- **발열 보호**: macOS 발열 상태가 '높음' 이상이거나 배터리 온도가 한계(기본 45°C)에 이르면 잠자기
-- **배터리 보호**: 전원이 연결되지 않은 상태에서 배터리가 기본 10% 이하이면 잠자기
-- **워치독**: LidOn이 강제 종료·크래시·멈춤 상태가 되거나 Mac 온도가 '위험' 단계에 이르면, 별도 감시 프로세스가 잠자기 설정을 즉시 되돌려요. 이 동작은 안전장치 설정과 관계없이 항상 켜져 있어요.
-- 뚜껑이 닫힌 Mac을 **가방 안에서 실행하지 마세요.** 단단하고 트인 곳에 두세요. 오래 걸리는 작업은 충전기 연결을 권장해요.
-
-워치독이 복구한 기록은 `~/Library/Application Support/LidOn/watchdog.log`에 남아요.
-
-## 동작 원리
-
-- 커널의 `IOPMrootDomain`에 비공개 selector `kPMSetClamshellSleepState`(12)를 호출해서 뚜껑을 닫아도 잠들지 않게 해요. `pmset disablesleep`과 달리 root 권한이 필요 없어요.
-- 이 커널 상태는 호출한 프로세스가 죽어도 **그대로 남아요.** 그래서 LidOn은 자기 자신을 `--watchdog` 모드로 한 번 더 실행하고 파이프로 하트비트를 보내요. 파이프가 끊기거나 하트비트가 30초 넘게 없으면 워치독이 상태를 되돌려요.
-- macOS 전원 데몬(powerd)도 같은 비트를 쓰기 때문에(외부 디스플레이 연결/해제 등) 켜져 있는 동안 1초마다 다시 적용해요.
-- 뚜껑 열림/닫힘은 IOKit 알림으로 즉시 받아요. 뚜껑이 닫혀 있는 동안에는 빠른 폴링을 멈춰서 전력을 아껴요.
-- 에이전트 연동은 `lidon mcp`(의존성 없는 Swift stdio MCP 서버)가 앱에 요청을 보내는 방식이에요. 요청은 MCP 서버 프로세스에 묶여 있어서 에이전트가 끝나면 앱이 즉시 알아채요.
-- 상태 머신(`Sources/LidOnCore/Engine.swift`)은 시스템 호출 없는 순수 로직이라 단위 테스트로 검증해요.
-
-⚠️ 공개되지 않은 macOS 인터페이스를 사용하므로 macOS를 크게 업데이트한 뒤에는 한 번 다시 테스트해 주세요.
-
-## 소스에서 빌드
+## Terminal
 
 ```bash
-swift test                          # 단위 테스트
-scripts/build-app.sh                # build/LidOn.app (유니버설)
-ARCHS=arm64 scripts/build-app.sh    # 현재 아키텍처만 (빠름)
-open build/LidOn.app
+lidon run -- npm test                        # awake only while the command runs
+lidon keep --for 2h --reason "data migration" # prints an id (max 12h)
+lidon release <id>
+lidon wait <pid>                             # until a process exits
+lidon notify "Build finished"                # Mac + phone notification
+lidon on --for 2h / lidon off                # the menu bar toggle
+lidon login-item on                          # launch at login
+lidon status [--json]
 ```
 
-Xcode 16 이상(Swift 6 툴체인)이 필요해요.
+URL scheme: `open "lidon://on?for=90m"`, `lidon://off`, `lidon://toggle` — handy from Shortcuts or Raycast.
 
-## 배포 (관리자용)
+## Phone notifications
 
-1. `scripts/set-repo.sh 내아이디/LidOn` — 저장소 이름을 모든 파일에 반영
-2. `git tag v1.0.0 && git push origin v1.0.0` — GitHub Actions가 테스트 → 유니버설 빌드 → Release 생성까지 해요
-3. Homebrew: 릴리스가 만들어지면 `scripts/update-tap.sh 1.0.0`으로 `echod3v/homebrew-tap`의 cask를 갱신해요
+*Settings → Notifications* supports [ntfy](https://ntfy.sh), Slack, Discord and a generic JSON webhook.
+You'll hear about it when an agent calls `notify`, and right before the closed Mac goes to sleep (work finished, time ran out,
+or a safeguard kicked in). LidOn waits up to 6 seconds for delivery before letting the Mac sleep.
 
-로컬에서 만들려면 `scripts/release.sh 1.0.0`을 실행하세요 (`dist/`에 zip, sha256, cask가 생겨요).
-Apple Developer ID가 생기면 `SIGN_ID="Developer ID Application: …" scripts/build-app.sh`로 정식 서명할 수 있어요.
+## Safety
 
-## 라이선스
+- **Heat:** sleeps when macOS reports serious thermal pressure or the battery reaches 45 °C (adjustable).
+- **Battery:** sleeps at 10 % when unplugged (adjustable).
+- **Watchdog:** a separate process restores normal sleep if LidOn crashes, hangs or is force-quit, or the Mac gets critically hot — even if every safeguard is turned off. Events are logged to `~/Library/Application Support/LidOn/watchdog.log`.
+- **Never run a closed MacBook inside a bag.** Keep it on a hard, open surface, and plug it in for long jobs.
+
+## FAQ
+
+**How is this different from `caffeinate` or `pmset`?**
+`caffeinate` prevents idle sleep, but a MacBook still sleeps when the lid closes (unless it's on power with an external display).
+`pmset disablesleep 1` works but needs `sudo`, has no safeguards, and stays on until you undo it. LidOn needs no admin rights,
+turns itself off when the reason is gone, watches heat and battery, and can be driven by agents.
+
+**How does it work?**
+It calls the private `kPMSetClamshellSleepState` selector on `IOPMrootDomain`, which doesn't require root. That kernel state
+survives the calling process, so LidOn runs a watchdog that restores it if the app disappears. Because `powerd` can overwrite
+the same bit (for example when a display is plugged in), LidOn re-applies it every second while it's on.
+
+**Does it drain the battery?**
+LidOn itself idles at roughly 0.1–0.3 % CPU. Animations only run while a LidOn window is visible. What drains the battery is the
+work you keep running — so plug in for long jobs.
+
+**Does it need special permissions?**
+No Accessibility, Input Monitoring, Screen Recording or admin password. It asks for notifications (optional).
+The Fn gesture reads key state, which macOS allows without permissions.
+
+**Why isn't it notarized?**
+It's a free side project without an Apple Developer account yet. The Homebrew cask and the install script clear the
+quarantine flag for you. The source is all here.
+
+**Will a macOS update break it?**
+It relies on an undocumented interface, so it could. Please test again after major macOS updates and
+[open an issue](https://github.com/echod3v/LidOn/issues) if something changes.
+
+**Intel Macs?**
+Builds are universal. Intel hasn't been tested as much as Apple silicon — reports welcome.
+
+## Uninstall
+
+```bash
+brew uninstall --zap --cask lidon      # or drag LidOn.app to the Trash
+```
+
+To remove agent integrations: *Settings → Agents → Disconnect*.
+
+## Build from source
+
+```bash
+swift test                          # unit tests (state machine, parsers, config merging)
+scripts/build-app.sh                # build/LidOn.app (universal)
+ARCHS=arm64 scripts/build-app.sh    # current architecture only
+```
+
+Requires Xcode 16 or later. Releases are built by GitHub Actions when a `v*` tag is pushed; `scripts/update-tap.sh <version>`
+updates the Homebrew tap.
+
+## License
 
 MIT

@@ -6,6 +6,8 @@ struct MenuView: View {
     @ObservedObject var settings: AppSettings
 
     private var ui: UIState { model.ui }
+    /// 메뉴가 열려 있는가 — 닫혀 있으면 모든 애니메이션을 멈춘다 (뚜껑 닫힌 동안 배터리 절약)
+    @State private var visible = false
     private var orb: OrbState { OrbState(ui.state) }
 
     var body: some View {
@@ -36,13 +38,15 @@ struct MenuView: View {
         .animation(Theme.spring, value: ui)
         .animation(Theme.spring, value: model.holds)
         .animation(Theme.spring, value: model.lastMessage)
+        .onAppear { visible = true }
+        .onDisappear { visible = false }
     }
 
     // MARK: - 머리글
 
     private var header: some View {
         HStack(spacing: 12) {
-            StatusOrb(state: orb, size: 46)
+            StatusOrb(state: orb, size: 46, animated: visible)
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: "LidOn")
                     .font(.system(.title3, design: .rounded).weight(.bold))
@@ -53,7 +57,7 @@ struct MenuView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-            if let start = ui.sessionStart {
+            if let start = ui.sessionStart, visible {
                 Pill(color: Theme.indigo) {
                     Text(start, style: .timer)
                 }
@@ -122,7 +126,7 @@ struct MenuView: View {
                 Label {
                     Text("An agent asked to keep running — just close the lid")
                 } icon: {
-                    Image(systemName: "sparkles").symbolEffect(.pulse, options: .repeating)
+                    Image(systemName: "sparkles").symbolEffect(.pulse, options: .repeating, isActive: visible)
                 }
                 .font(.caption.weight(.medium))
                 .foregroundStyle(Theme.teal)
@@ -174,7 +178,7 @@ struct MenuView: View {
                                 .foregroundStyle(Theme.accent)
                             Text(verbatim: h.label).font(.callout.weight(.medium)).lineLimit(1)
                             Spacer(minLength: 0)
-                            if let u = h.until {
+                            if let u = h.until, visible {
                                 Text(timerInterval: Date()...max(u, Date()), countsDown: true)
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
@@ -187,7 +191,7 @@ struct MenuView: View {
                             .buttonStyle(.plain)
                             .help(Text("Cancel this request"))
                         }
-                        if let u = h.until, u > h.since {
+                        if let u = h.until, u > h.since, visible {
                             // 남은 시간 막대 — 시스템이 알아서 줄여 준다 (앱이 매초 다시 그리지 않음)
                             ProgressView(timerInterval: h.since...u, countsDown: true) { EmptyView() } currentValueLabel: { EmptyView() }
                                 .progressViewStyle(.linear)

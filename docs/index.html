@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LidOn — Close the lid. Keep working.</title>
+<meta name="description" content="Free, open-source macOS menu bar app that keeps your MacBook — and your AI coding agents — running with the lid closed. No external display, no sudo.">
+<meta property="og:title" content="LidOn — Close the lid. Keep working.">
+<meta property="og:description" content="Keep your MacBook and AI coding agents running with the lid closed. Free, open source, no sudo, MCP for agents.">
+<meta property="og:image" content="https://echod3v.github.io/LidOn/media/social-preview.png">
+<meta property="og:url" content="https://echod3v.github.io/LidOn/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://echod3v.github.io/LidOn/media/social-preview.png">
+<link rel="icon" href="https://raw.githubusercontent.com/echod3v/LidOn/main/Resources/AppIcon.png">
+<style>
+  :root {
+    --bg: #070a12; --bg2: #0c1220; --card: rgba(255,255,255,.045); --line: rgba(255,255,255,.09);
+    --text: #eef2f7; --muted: #9aa6b8; --mint: #5cedc7; --teal: #149eb3; --indigo: #666bfa;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--mint); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  .glow { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(600px 380px at 50% 30%, rgba(20,158,179,.35), transparent 70%),
+                radial-gradient(500px 300px at 80% 10%, rgba(102,107,250,.18), transparent 70%); }
+  header.hero { position: relative; overflow: hidden; padding: 72px 0 40px; text-align: center;
+    background: linear-gradient(var(--bg2), var(--bg)); }
+  .hero img.icon { width: 96px; height: 96px; }
+  h1 { font: 800 clamp(44px, 8vw, 72px)/1.05 ui-rounded, -apple-system, system-ui, sans-serif; margin: 14px 0 6px;
+    background: linear-gradient(135deg, var(--mint), var(--teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { font: 700 clamp(24px, 4vw, 34px)/1.2 ui-rounded, -apple-system, system-ui, sans-serif; margin: 0 0 12px; }
+  .sub { color: var(--muted); max-width: 640px; margin: 0 auto 26px; font-size: 18px; }
+  .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 12px; font-weight: 600;
+    border: 1px solid var(--line); color: var(--text); background: var(--card); }
+  .btn.primary { background: linear-gradient(135deg, var(--mint), var(--teal)); color: #04161a; border: none; }
+  .btn:hover { text-decoration: none; filter: brightness(1.08); }
+  .install { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; background: #0b1120; border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 10px 10px 16px; font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .install code { white-space: nowrap; overflow-x: auto; }
+  .copy { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 5px 10px;
+    font: 600 12px -apple-system, system-ui, sans-serif; cursor: pointer; flex-shrink: 0; }
+  .demo { display: block; width: min(720px, 100%); margin: 36px auto 0; border-radius: 18px; border: 1px solid var(--line);
+    box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  section { padding: 64px 0; }
+  h2 { font: 700 30px/1.2 ui-rounded, -apple-system, system-ui, sans-serif; margin: 0 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 28px; max-width: 720px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .card h3 { margin: 10px 0 6px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .badge { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 19px; }
+  .b1 { background: linear-gradient(135deg, #1bb0a0, #0f7f95); } .b2 { background: linear-gradient(135deg, #7074ff, #4b4fd6); }
+  .b3 { background: linear-gradient(135deg, #ff8a5c, #e0584b); } .b4 { background: linear-gradient(135deg, #3c465a, #262d3b); }
+  pre { background: #0b1120; border: 1px solid var(--line); border-radius: 14px; padding: 18px; overflow-x: auto;
+    font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; }
+  pre .c { color: #6f7c90; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td, th { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td code { color: var(--mint); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .shots { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+  .shots img { width: min(330px, 100%); border-radius: 14px; border: 1px solid var(--line); }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); margin: 10px 0 0; }
+  footer { padding: 40px 0 60px; color: var(--muted); text-align: center; font-size: 14px; border-top: 1px solid var(--line); }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } section { padding: 48px 0; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="glow"></div>
+  <div class="wrap" style="position:relative">
+    <img class="icon" src="https://raw.githubusercontent.com/echod3v/LidOn/main/Resources/AppIcon.png" alt="LidOn icon">
+    <h1>LidOn</h1>
+    <p class="tagline">Close the lid. Keep working.</p>
+    <p class="sub">A free, open-source macOS menu bar app that keeps your MacBook — and your AI coding agents — running with the lid closed. No external display, no charger, no <code>sudo</code>.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/echod3v/LidOn/releases/latest">Download for Mac</a>
+      <a class="btn" href="https://github.com/echod3v/LidOn">View on GitHub</a>
+    </div>
+    <div class="install"><code id="brew">brew install --cask echod3v/tap/lidon</code><button class="copy" data-copy="brew">Copy</button></div>
+    <img class="demo" src="media/demo.gif" alt="Closing the lid — LidOn keeps the Mac running">
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>Three ways to keep it running</h2>
+    <p class="lead">LidOn keeps the Mac awake only while there's a reason to — and lets it sleep again as soon as that reason is gone.</p>
+    <div class="grid">
+      <div class="card"><div class="badge b1">🌐</div><h3>Hold Fn, close the lid</h3><p>Hold Fn for half a second and close the lid. Let go — you still have 3 seconds. Touching another key or the mouse cancels it.</p></div>
+      <div class="card"><div class="badge b2">⚡</div><h3>Menu bar toggle</h3><p>Keep running until you turn it off, or for 30 minutes to 8 hours. Or press ⌃⌥⌘L from anywhere.</p></div>
+      <div class="card"><div class="badge b3">✦</div><h3>Your AI agent asks</h3><p>Claude Code, Codex or Cursor call <code>keep_awake</code> before long work and <code>allow_sleep</code> when they're done.</p></div>
+      <div class="card"><div class="badge b4">›_</div><h3>From the terminal</h3><p><code>lidon run -- npm test</code> keeps the Mac awake exactly as long as the command runs.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="two">
+      <div>
+        <h2>Built for AI coding agents</h2>
+        <p class="lead">LidOn doesn't guess whether an agent is busy. It ships an MCP server so agents ask for it themselves — with a reason and a time limit — and a skill that tells them when to.</p>
+        <table>
+          <tr><th>Tool</th><th>What it does</th></tr>
+          <tr><td><code>keep_awake</code></td><td>Keep the Mac awake for a reason and a time limit (max 12 h). Replies with the expiry and any warnings.</td></tr>
+          <tr><td><code>allow_sleep</code></td><td>Release it. If the lid is closed, the Mac sleeps.</td></tr>
+          <tr><td><code>notify</code></td><td>Ping you on the Mac and your phone — and report where it actually landed.</td></tr>
+          <tr><td><code>lidon_status</code></td><td>Lid, battery, temperature and active requests.</td></tr>
+        </table>
+      </div>
+      <div>
+        <pre><span class="c"># Claude Code plugin (MCP server + skill)</span>
+/plugin marketplace add echod3v/LidOn
+/plugin install lidon@lidon
+
+<span class="c"># or connect any agent in one command</span>
+lidon setup claude
+lidon setup codex
+lidon setup cursor</pre>
+        <p class="lead" style="margin-top:14px">Requests are released when the agent says so, when time runs out, or when the agent session ends — even if it crashes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Safe by default</h2>
+    <p class="lead">Running a closed laptop is only a good idea if something is watching it.</p>
+    <div class="grid">
+      <div class="card"><h3>🌡 Heat</h3><p>Sleeps when macOS reports serious thermal pressure or the battery reaches 45 °C.</p></div>
+      <div class="card"><h3>🔋 Battery</h3><p>Sleeps at 10 % when unplugged. Both limits are adjustable.</p></div>
+      <div class="card"><h3>🛟 Watchdog</h3><p>If LidOn crashes, hangs or is force-quit, a separate process restores normal sleep immediately.</p></div>
+      <div class="card"><h3>📱 Phone notifications</h3><p>ntfy, Slack, Discord or a webhook — before the Mac goes to sleep, so you know why.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Looks at home on your Mac</h2>
+    <p class="lead">Menu bar status, battery and temperature at a glance, live countdowns for agent requests. English and Korean.</p>
+    <div class="shots">
+      <img src="screenshots/menu.png" alt="LidOn menu">
+      <img src="screenshots/welcome.png" alt="LidOn welcome window">
+    </div>
+  </section>
+
+  <section>
+    <h2>FAQ</h2>
+    <details><summary>How is this different from caffeinate or pmset?</summary><p><code>caffeinate</code> prevents idle sleep, but a MacBook still sleeps when the lid closes (unless it's plugged in with an external display). <code>pmset disablesleep 1</code> works but needs sudo, has no safeguards, and stays on until you undo it. LidOn needs no admin rights, turns itself off when the reason is gone, and can be driven by agents.</p></details>
+    <details><summary>Does it drain the battery?</summary><p>LidOn itself idles at roughly 0.1–0.3 % CPU, and animations only run while its windows are visible. The work you keep running is what uses power — plug in for long jobs.</p></details>
+    <details><summary>What permissions does it need?</summary><p>None of Accessibility, Input Monitoring, Screen Recording or an admin password. It asks for notifications, which is optional.</p></details>
+    <details><summary>Why isn't it notarized?</summary><p>It's a free project without an Apple Developer account yet. Homebrew and the install script clear the quarantine flag; all the source is on GitHub.</p></details>
+    <details><summary>Could a macOS update break it?</summary><p>It uses an undocumented power-management interface, so it could. Test after major updates and open an issue if anything changes.</p></details>
+  </section>
+
+  <section style="text-align:center">
+    <h2>Get LidOn</h2>
+    <p class="lead" style="margin: 0 auto 20px">macOS 14 Sonoma or later · MacBook with Apple silicon or Intel</p>
+    <div class="install" style="margin-bottom:12px"><code id="brew2">brew install --cask echod3v/tap/lidon</code><button class="copy" data-copy="brew2">Copy</button></div><br>
+    <div class="install"><code id="curl">curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash</code><button class="copy" data-copy="curl">Copy</button></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">LidOn is free and open source (MIT) · <a href="https://github.com/echod3v/LidOn">GitHub</a> · <a href="https://github.com/echod3v/LidOn/blob/main/README.ko.md">한국어</a> · Never run a closed MacBook inside a bag.</div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = document.getElementById(b.dataset.copy).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>

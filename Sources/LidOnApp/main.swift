@@ -12,6 +12,12 @@ if let i = CommandLine.arguments.firstIndex(of: "--render-icon"), i + 1 < Comman
     exit(ok ? 0 : 1)
 }
 
+// `LidOn --render-media <폴더>`: 데모 GIF와 소셜 미리보기 이미지를 만들고 끝낸다
+if let i = CommandLine.arguments.firstIndex(of: "--render-media"), i + 1 < CommandLine.arguments.count {
+    let ok = MainActor.assumeIsolated { PromoMedia.render(to: CommandLine.arguments[i + 1]) }
+    exit(ok ? 0 : 1)
+}
+
 // 파이프가 끊긴 워치독에 쓸 때 앱이 죽지 않도록
 signal(SIGPIPE, SIG_IGN)
 

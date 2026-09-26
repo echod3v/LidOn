@@ -60,9 +60,11 @@ struct StatusOrb: View {
     var state: OrbState
     var size: CGFloat = 44
     var symbol: String?
+    /// 화면에 보이지 않을 때는 false로 — 애니메이션을 완전히 멈춘다
+    var animated = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: state == .idle)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: state == .idle || !animated)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let colors = Theme.colors(state)
             ZStack {

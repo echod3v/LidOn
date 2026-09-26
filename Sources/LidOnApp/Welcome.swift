@@ -7,6 +7,7 @@ import SwiftUI
 @MainActor
 final class WelcomeWindowController {
     private var window: NSWindow?
+    private var closeObserver: NSObjectProtocol?
 
     func show(model: AppModel, settings: AppSettings) {
         if window == nil {
@@ -18,6 +19,16 @@ final class WelcomeWindowController {
             w.contentView = NSHostingView(rootView: WelcomeView(model: model, settings: settings) { [weak w] in w?.close() })
             w.setContentSize(w.contentView!.fittingSize)
             w.center()
+            // 닫힌 창에서 애니메이션이 계속 돌지 않도록, 닫으면 내용과 창을 모두 버린다
+            closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w,
+                                                                   queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.window?.contentView = nil
+                    self?.window = nil
+                    if let o = self?.closeObserver { NotificationCenter.default.removeObserver(o) }
+                    self?.closeObserver = nil
+                }
+            }
             window = w
         }
         NSApp.activate(ignoringOtherApps: true)
