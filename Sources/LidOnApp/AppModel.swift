@@ -68,6 +68,7 @@ final class AppModel: ObservableObject {
         lid.observeLid { [weak self] in
             MainActor.assumeIsolated { self?.tick() }
         }
+        restoreState()
         startIPC()
         applyHotkey()
         if settings.notifyLocal { Notifier.requestPermission() }
@@ -138,6 +139,7 @@ final class AppModel: ObservableObject {
     }
 
     func shutdown() {
+        saveState(force: true)
         overlay.hide(animated: false)
         ipc?.stop()
         assertion.set(false, reason: "")
@@ -245,6 +247,7 @@ final class AppModel: ObservableObject {
         }
         assertion.set(want, reason: "LidOn: keep running with the lid closed")
         publish()
+        saveState()
     }
 
     private func publish() {
@@ -486,18 +489,22 @@ final class AppModel: ObservableObject {
         h.label = text
         h.until = mins.map { now.addingTimeInterval($0 * 60) }
         holds[hid] = h
-        if let pid, holdSources[pid] == nil {
-            let src = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .main)
-            src.setEventHandler { [weak self] in
-                MainActor.assumeIsolated { self?.removeHolds(pid: pid) }
-            }
-            src.resume()
-            holdSources[pid] = src
-            // 등록 직후 프로세스가 이미 끝났을 수 있다
-            if kill(pid, 0) != 0 && errno == ESRCH { removeHolds(pid: pid) }
-        }
+        if let pid { watch(pid: pid) }
         tick()
         return .success(holds[hid] ?? h)
+    }
+
+    /// 요청한 프로세스가 끝나면 그 요청을 푼다
+    private func watch(pid: Int32) {
+        guard holdSources[pid] == nil else { return }
+        let src = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .main)
+        src.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.removeHolds(pid: pid) }
+        }
+        src.resume()
+        holdSources[pid] = src
+        // 등록 직후 프로세스가 이미 끝났을 수 있다
+        if kill(pid, 0) != 0 && errno == ESRCH { removeHolds(pid: pid) }
     }
 
     private func removeHold(id: String, tickAfter: Bool = true, expired: Bool = false) {
@@ -515,6 +522,63 @@ final class AppModel: ObservableObject {
         guard !ids.isEmpty else { return }
         ids.forEach { holds.removeValue(forKey: $0) }
         tick()
+    }
+
+    // MARK: - 재시작 전 상태 (업데이트·재실행 뒤 이어 가기)
+
+    private struct SavedState: Codable, Equatable {
+        var savedAt = Date()
+        var manualOn = false
+        var manualUntil: Date?
+        var holds: [Hold] = []
+        var sessionStart: Date?
+        var sessionTriggers: [Trigger]?
+    }
+
+    /// 수동 토글과 Fn 세션은 이 시간 안에 다시 켜졌을 때만 이어 간다 (어제 켜 둔 토글이 되살아나지 않도록)
+    private static let quickRestart: TimeInterval = 120
+    private var stateURL: URL { LidOnPaths.supportDir.appendingPathComponent("state.json") }
+    private var lastSaved: SavedState?
+
+    private func currentState() -> SavedState {
+        SavedState(manualOn: engine.manualOn, manualUntil: engine.manualUntil, holds: sortedHolds,
+                   sessionStart: engine.session?.start, sessionTriggers: engine.session.map { Trigger.allCases.filter($0.triggers.contains) })
+    }
+
+    private func saveState(force: Bool = false) {
+        var state = currentState()
+        if !force, var last = lastSaved {
+            last.savedAt = state.savedAt
+            if last == state { return }
+        }
+        state.savedAt = Date()
+        lastSaved = state
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        try? enc.encode(state).write(to: stateURL, options: .atomic)
+    }
+
+    /// 앱이 다시 켜졌을 때: 살아 있는 요청은 그대로 되살리고, 방금 전까지 켜져 있던 토글·세션은 이어 간다.
+    /// 뚜껑이 닫힌 채 업데이트돼도 Mac이 잠들지 않는다.
+    private func restoreState() {
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        guard let data = try? Data(contentsOf: stateURL), let saved = try? dec.decode(SavedState.self, from: data) else { return }
+        let now = Date()
+        for h in saved.holds {
+            if let u = h.until, u <= now { continue }
+            if let pid = h.pid, kill(pid, 0) != 0, errno == ESRCH { continue }
+            holds[h.id] = h
+        }
+        holds.values.compactMap(\.pid).forEach(watch(pid:))
+
+        let recent = now.timeIntervalSince(saved.savedAt) < Self.quickRestart
+        if recent, let start = saved.sessionStart, let t = saved.sessionTriggers {
+            handle(engine.resumeSession(start: start, triggers: Set(t), now: now))
+        }
+        if recent, saved.manualOn, (saved.manualUntil.map { $0 > now } ?? true) {
+            handle(engine.setManual(true, until: saved.manualUntil, now: now))
+        }
     }
 
     // MARK: - 기록

@@ -55,6 +55,7 @@ public enum EngineEvent: Equatable, Sendable {
 ///
 ///  대기 ──(Fn 길게 / 수동 토글 / 에이전트·터미널 요청)──▶ 무장
 ///  무장 ──(뚜껑 닫힘)──▶ 봉인 (뚜껑 닫힌 채 실행 중)
+///  대기(뚜껑 닫힘, 아직 깨어 있음) ──(수동 토글 / 요청)──▶ 봉인
 ///  봉인 ──(뚜껑 열림 / 안전장치 / 켠 이유가 모두 사라짐)──▶ 대기
 public struct Engine: Sendable {
     public struct Session: Equatable, Sendable {
@@ -80,6 +81,9 @@ public struct Engine: Sendable {
     /// 취소된 뒤에는 Fn을 뗐다가 다시 눌러야 다시 켜진다 (Fn+E 같은 단축키가 켜지지 않게)
     private var fnBlocked = false
     private var manualEndedByTimer = false
+    /// 뚜껑이 닫힌 채 잠들 차례가 된 뒤(세션 종료·안전장치·잠자기)에는 뚜껑을 다시 열거나 닫을 때까지 새로 봉인하지 않는다.
+    /// 그래야 남아 있던 요청 때문에 가방 속 Mac이 다시 깨어 있지 않는다.
+    private var closedSealBlocked = false
 
     public init(config: EngineConfig = EngineConfig(), lidClosed: Bool = false) {
         self.config = config
@@ -123,11 +127,19 @@ public struct Engine: Sendable {
 
     /// 시스템이 (어떤 이유로든) 잠자기에 들어가려 할 때
     public mutating func systemWillSleep(now: Date) -> [EngineEvent] {
+        if lidClosed { closedSealBlocked = true }
         fnArmed = false
         fnDownAt = nil
         fnReleasedAt = nil
         guard session != nil else { return [] }
         return [.ended(finish(.systemSlept, now: now))]
+    }
+
+    /// 앱이 재시작되기 전 뚜껑이 닫힌 채 실행 중이던 세션을 이어 간다 (업데이트 등).
+    /// 뚜껑이 지금도 닫혀 있을 때만, 안전장치 조건을 다시 확인한 뒤 봉인한다.
+    public mutating func resumeSession(start: Date, triggers: Set<Trigger>, now: Date) -> [EngineEvent] {
+        guard lidClosed, session == nil, !closedSealBlocked, !triggers.isEmpty else { return [] }
+        return seal(triggers: triggers.union(armTriggers(now: now)), start: start, now: now)
     }
 
     // MARK: - 한 단계 진행
@@ -189,6 +201,7 @@ public struct Engine: Sendable {
         // 뚜껑 상태 변화
         if input.lidClosed != lidClosed {
             lidClosed = input.lidClosed
+            closedSealBlocked = false
             if lidClosed {
                 events += lidDidClose(now: now)
             } else if session != nil {
@@ -209,17 +222,27 @@ public struct Engine: Sendable {
         }
         fnReleasedAt = nil
         guard session == nil, !triggers.isEmpty else { return events }
+        return events + seal(triggers: triggers, start: now, now: now)
+    }
 
-        if let r = safeguardReason(now: now, start: now) {
-            return events + [.refusedToSeal(r)]
+    private mutating func seal(triggers: Set<Trigger>, start: Date, now: Date) -> [EngineEvent] {
+        if let r = safeguardReason(now: now, start: start) {
+            closedSealBlocked = true
+            return [.refusedToSeal(r)]
         }
-        session = Session(start: now, triggers: triggers, batteryStart: power.batteryPercent,
+        session = Session(start: start, triggers: triggers, batteryStart: power.batteryPercent,
                           maxBatteryTemp: power.batteryTempC, maxThermal: power.thermal, requests: requests)
-        return events + [.sealed(triggers)]
+        return [.sealed(triggers)]
     }
 
     private mutating func evaluateSession(now: Date) -> [EngineEvent] {
-        guard let s = session else { return [] }
+        guard let s = session else {
+            // 뚜껑이 이미 닫혀 있는데 아직 깨어 있다면 (외부 모니터, 앱 재시작, 원격 명령)
+            // 수동 토글이나 요청이 들어오는 즉시 봉인한다
+            let triggers = armTriggers(now: now)
+            guard lidClosed, !closedSealBlocked, !triggers.isEmpty else { return [] }
+            return seal(triggers: triggers, start: now, now: now)
+        }
 
         if let r = safeguardReason(now: now, start: s.start) {
             return [.ended(finish(r, now: now))]
@@ -253,6 +276,7 @@ public struct Engine: Sendable {
         let s = session!
         session = nil
         manualEndedByTimer = false
+        if lidClosed { closedSealBlocked = true }
         // 뚜껑을 연 경우가 아니라면(= Mac이 잠든다) 수동 모드도 끈다
         if reason != .lidOpened {
             manualOn = false

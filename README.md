@@ -50,6 +50,8 @@ Requires macOS 14 Sonoma or later on a MacBook (Apple silicon or Intel).
 | **Agents & terminal** | An AI agent calls `keep_awake`, or you run `lidon run -- <command>`. | The work finishes, the time runs out, or the agent session ends |
 
 When the lid closes, LidOn locks the screen and turns the display off. When you open it, normal sleep is back.
+If the lid is already closed but the Mac is still awake (an external display, or `lidon on` over SSH), turning it on takes effect right away.
+If LidOn restarts — for example during an update — it picks up where it left off.
 Pressing another key or moving the mouse while the Fn gesture is active cancels it.
 
 <p align="center">

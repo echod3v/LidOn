@@ -199,13 +199,75 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(ended(ev)?.reason, .manualOff)
     }
 
-    func testLidClosedWithoutArmingNeverDisablesSleep() {
+    func testLidClosedWithoutArmingDoesNotDisableSleep() {
         lid = true
         step()
         XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
-        // 뚜껑이 닫힌 뒤에 켜도 (봉인 전이므로) 잠자기를 막지 않는다
-        _ = engine.setManual(true, now: now)
+        XCTAssertFalse(engine.isSealed)
+    }
+
+    func testManualOnWhileLidAlreadyClosedSeals() {
+        // 외부 모니터, 앱 재시작, 원격 `lidon on`: 뚜껑이 닫힌 채 아직 깨어 있을 때 켜면 바로 봉인
+        lid = true
+        step()
+        let ev = engine.setManual(true, now: now)
+        XCTAssertEqual(ev, [.sealed([.manual])])
+        XCTAssertTrue(engine.wantsLidSleepDisabled(now: now))
+    }
+
+    func testRequestWhileLidAlreadyClosedSeals() {
+        lid = true
+        step()
+        requests = ["build"]
+        XCTAssertEqual(step(), [.sealed([.request])])
+        requests = []
+        XCTAssertEqual(ended(step())?.reason, .requestFinished)
         XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+    }
+
+    func testNoResealAfterSessionEndedWithLidClosed() {
+        // 안전장치로 끝났으면 남은 요청이 있어도 뚜껑을 열 때까지 다시 켜지지 않는다
+        requests = ["build"]
+        lid = true
+        step()
+        XCTAssertTrue(engine.isSealed)
+        XCTAssertNotNil(ended(step(power: PowerStatus(thermal: .serious))))
+        step(power: PowerStatus(thermal: .nominal))
+        XCTAssertFalse(engine.isSealed)
+        _ = engine.setManual(true, now: now)
+        XCTAssertFalse(engine.isSealed)
+        XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+        // 뚜껑을 열었다 닫으면 다시 가능
+        lid = false; step()
+        lid = true
+        XCTAssertTrue(step().contains(.sealed([.manual, .request])))
+    }
+
+    func testNoResealAfterSystemSleepWithLidClosed() {
+        lid = true
+        step()
+        _ = engine.systemWillSleep(now: now)
+        // 잠깐 깨어났을 때(다크 웨이크) 요청이 들어와도 봉인하지 않는다
+        requests = ["sync"]
+        XCTAssertEqual(step(), [])
+        XCTAssertFalse(engine.wantsLidSleepDisabled(now: now))
+    }
+
+    func testResumeSessionAfterRestart() {
+        engine = Engine(lidClosed: true)
+        lid = true
+        let start = now.addingTimeInterval(-600)
+        XCTAssertEqual(engine.resumeSession(start: start, triggers: [.fn], now: now), [.sealed([.fn])])
+        XCTAssertEqual(engine.session?.start, start)
+        step(after: 60)
+        XCTAssertTrue(engine.isSealed, "Fn 세션은 뚜껑을 열 때까지 유지")
+        lid = false
+        XCTAssertEqual(ended(step())?.reason, .lidOpened)
+    }
+
+    func testResumeSessionRequiresClosedLid() {
+        XCTAssertEqual(engine.resumeSession(start: now, triggers: [.fn], now: now), [])
+        XCTAssertFalse(engine.isSealed)
     }
 
     // MARK: - 안전장치
