@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `--debug-snapshot <dir>`을 함께 주면 각 창을 PNG로 저장한다.
     private var debugWindows: [NSWindow] = []
     private func showDebugWindows() {
+        LaptopGlyph.freeze = CommandLine.arguments.contains("--debug-still")
         func tab<V: View>(_ v: V) -> AnyView { AnyView(v.frame(width: 520, height: 500).background(Color(nsColor: .windowBackgroundColor))) }
         let views: [(String, AnyView)] = [
             ("menu", AnyView(MenuView(model: model, settings: settings).background(Color(nsColor: .windowBackgroundColor)))),

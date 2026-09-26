@@ -43,10 +43,10 @@ struct WelcomeView: View {
             ZStack {
                 LinearGradient(colors: [Theme.teal.opacity(0.35), Theme.indigo.opacity(0.25), .clear],
                                startPoint: .top, endPoint: .bottom)
-                StatusOrb(state: .armed, size: 170, symbol: "")
-                    .opacity(0.5)
-                LaptopGlyph(width: 118)
-                    .offset(y: -4)
+                StatusOrb(state: .armed, size: 180, symbol: "")
+                    .opacity(0.45)
+                LaptopGlyph(width: 160)
+                    .offset(y: 4)
             }
             .frame(height: 190)
             .clipped()
@@ -75,13 +75,15 @@ struct WelcomeView: View {
                 }
 
                 Card(highlighted: model.ui.manualOn) {
-                    Toggle(isOn: Binding(get: { model.ui.manualOn }, set: { model.setManual($0) })) {
-                        Label("Keep running with lid closed", systemImage: "bolt.fill")
-                            .font(.body.weight(.semibold))
+                    HStack(spacing: 10) {
+                        IconBadge(symbol: model.ui.manualOn ? "bolt.fill" : "bolt", color: model.ui.manualOn ? Theme.teal : .gray, size: 26)
+                        Text("Keep running with lid closed").font(.body.weight(.semibold))
+                        Spacer(minLength: 0)
+                        Toggle("Keep running with lid closed", isOn: Binding(get: { model.ui.manualOn }, set: { model.setManual($0) }))
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(Theme.teal)
                     }
-                    .toggleStyle(.switch)
-                    .tint(Theme.teal)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 Text("Don't see the icon? Your menu bar may be full — icons can hide behind the camera notch. Quit a few menu bar apps, or open LidOn again to bring up this window.")

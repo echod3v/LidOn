@@ -104,53 +104,117 @@ struct StatusOrb: View {
     }
 }
 
-// MARK: - 노트북 글리프
+// MARK: - 맥북 글리프
 
-/// 뚜껑이 3D로 닫혔다 열리는 노트북. "뚜껑을 닫아도 된다"를 동작으로 보여 준다.
+/// 뚜껑이 닫혔다 열리는 맥북. "뚜껑을 닫아도 된다"를 동작으로 보여 준다.
+/// 알루미늄 테두리, 얇은 검은 베젤, 카메라 노치, 배경화면처럼 빛나는 화면, 힌지, 앞쪽 손가락 홈까지 그린다.
 struct LaptopGlyph: View {
     var width: CGFloat = 120
     var animating = true
     var tint: Color = Theme.mint
 
+    /// 캡처용: 뚜껑을 열린 상태로 멈춘다 (`--debug-still`)
+    nonisolated(unsafe) static var freeze = false
+
     var body: some View {
-        PhaseAnimator(animating ? [0.0, 1.0, 1.0, 0.0] : [0.0]) { lid in
-            laptop(lid: lid)
+        PhaseAnimator(animating && !Self.freeze ? [0.0, 1.0, 1.0, 0.0] : [0.0]) { lid in
+            macBook(lid: lid)
         } animation: { lid in
             lid == 1 ? .easeInOut(duration: 1.0) : .spring(response: 0.9, dampingFraction: 0.8)
         }
-        .frame(width: width, height: width * 0.72)
+        .frame(width: width, height: width * 0.66)
     }
 
-    private func laptop(lid: Double) -> some View {
+    private func macBook(lid: Double) -> some View {
         let w = width
+        let lidW = w * 0.80
+        let lidH = lidW * 0.64
+        let rim = max(1, w * 0.007)          // 알루미늄 테두리 두께
+        let bezel = w * 0.018                // 검은 베젤 두께
+        let corner = w * 0.034
+
         return VStack(spacing: 0) {
-            // 화면 (아래쪽 모서리를 축으로 접힌다)
-            RoundedRectangle(cornerRadius: w * 0.05, style: .continuous)
-                .fill(LinearGradient(colors: [Color(white: 0.16), Color(white: 0.07)], startPoint: .top, endPoint: .bottom))
-                .overlay(
-                    RoundedRectangle(cornerRadius: w * 0.05, style: .continuous)
-                        .strokeBorder(.white.opacity(0.55), lineWidth: max(1.5, w * 0.022))
-                )
-                .overlay(
-                    // 화면 속 "켜짐" 빛
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: w * 0.22, height: w * 0.035)
-                        .shadow(color: tint, radius: w * 0.06)
-                        .opacity(1 - lid * 0.4)
-                )
-                .frame(width: w * 0.78, height: w * 0.5)
-                .brightness(-0.25 * lid)
-                .scaleEffect(x: 1 - 0.04 * lid, y: 1 - 0.9 * lid, anchor: .bottom)
+            // 뚜껑 (아래 모서리를 축으로 접힌다)
+            ZStack(alignment: .top) {
+                // 알루미늄 외곽
+                UnevenRoundedRectangle(topLeadingRadius: corner, bottomLeadingRadius: w * 0.006,
+                                       bottomTrailingRadius: w * 0.006, topTrailingRadius: corner, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.86), Color(white: 0.62)], startPoint: .top, endPoint: .bottom))
+                // 검은 베젤
+                UnevenRoundedRectangle(topLeadingRadius: corner - rim, bottomLeadingRadius: w * 0.004,
+                                       bottomTrailingRadius: w * 0.004, topTrailingRadius: corner - rim, style: .continuous)
+                    .fill(Color(white: 0.04))
+                    .padding(rim)
+                // 화면: 은은한 배경화면 + "켜짐" 빛
+                display(w: w, glow: 1 - lid * 0.5)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: corner * 0.55, bottomLeadingRadius: w * 0.003,
+                                                      bottomTrailingRadius: w * 0.003, topTrailingRadius: corner * 0.55,
+                                                      style: .continuous))
+                    .padding(.horizontal, rim + bezel)
+                    .padding(.top, rim + bezel)
+                    .padding(.bottom, rim + bezel * 1.35)
+                // 카메라 노치
+                UnevenRoundedRectangle(bottomLeadingRadius: w * 0.012, bottomTrailingRadius: w * 0.012, style: .continuous)
+                    .fill(Color(white: 0.04))
+                    .frame(width: lidW * 0.13, height: bezel * 1.55)
+                    .overlay(Circle().fill(Color(white: 0.16)).frame(width: w * 0.008, height: w * 0.008).offset(y: -bezel * 0.2))
+                    .padding(.top, rim)
+            }
+            .frame(width: lidW, height: lidH)
+            .brightness(-0.3 * lid)
+            .scaleEffect(x: 1 - 0.03 * lid, y: 1 - 0.92 * lid, anchor: .bottom)
+
+            // 힌지
+            RoundedRectangle(cornerRadius: w * 0.004)
+                .fill(LinearGradient(colors: [Color(white: 0.22), Color(white: 0.42)], startPoint: .top, endPoint: .bottom))
+                .frame(width: lidW * 0.94, height: max(1.5, w * 0.012))
+
             // 본체
-            UnevenRoundedRectangle(bottomLeadingRadius: w * 0.04, bottomTrailingRadius: w * 0.04, style: .continuous)
-                .fill(LinearGradient(colors: [.white.opacity(0.85), .white.opacity(0.55)], startPoint: .top, endPoint: .bottom))
-                .frame(width: w, height: w * 0.055)
-                .overlay(alignment: .top) {
-                    Capsule().fill(.black.opacity(0.25)).frame(width: w * 0.16, height: w * 0.018)
-                }
+            ZStack(alignment: .top) {
+                UnevenRoundedRectangle(topLeadingRadius: w * 0.006, bottomLeadingRadius: w * 0.03,
+                                       bottomTrailingRadius: w * 0.03, topTrailingRadius: w * 0.006, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.95), Color(white: 0.76), Color(white: 0.56)],
+                                         startPoint: .top, endPoint: .bottom))
+                // 윗면 반사광
+                Rectangle()
+                    .fill(.white.opacity(0.7))
+                    .frame(height: max(0.5, w * 0.003))
+                    .padding(.horizontal, w * 0.02)
+                // 손가락 홈
+                UnevenRoundedRectangle(bottomLeadingRadius: w * 0.014, bottomTrailingRadius: w * 0.014, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.55), Color(white: 0.72)], startPoint: .top, endPoint: .bottom))
+                    .frame(width: w * 0.15, height: w * 0.013)
+            }
+            .frame(width: w, height: w * 0.042)
+
+            // 바닥 그림자
+            Ellipse()
+                .fill(.black.opacity(0.35))
+                .frame(width: w * 0.86, height: w * 0.03)
+                .blur(radius: w * 0.018)
+                .offset(y: -w * 0.012)
         }
         .frame(maxHeight: .infinity, alignment: .bottom)
+    }
+
+    /// 배경화면처럼 빛나는 화면
+    private func display(w: CGFloat, glow: Double) -> some View {
+        ZStack {
+            LinearGradient(colors: [Color(red: 0.10, green: 0.10, blue: 0.30), Theme.indigo.opacity(0.9), Theme.teal, tint],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            // 부드러운 빛 덩어리
+            // 부드러운 빛 덩어리 (흐림 필터 대신 원형 그라데이션 — 어디서 그려도 부드럽다)
+            RadialGradient(colors: [tint.opacity(0.75), tint.opacity(0)], center: UnitPoint(x: 0.78, y: 0.78),
+                           startRadius: 0, endRadius: w * 0.34)
+            RadialGradient(colors: [Theme.indigo.opacity(0.8), Theme.indigo.opacity(0)], center: UnitPoint(x: 0.18, y: 0.2),
+                           startRadius: 0, endRadius: w * 0.3)
+            // 가운데 "켜짐" 빛
+            RadialGradient(colors: [.white, tint.opacity(0.7), tint.opacity(0)], center: .center,
+                           startRadius: 0, endRadius: w * 0.07)
+                .opacity(glow)
+            // 유리 반사
+            LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .topLeading, endPoint: .center)
+        }
     }
 }
 

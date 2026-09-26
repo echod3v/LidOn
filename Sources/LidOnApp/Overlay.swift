@@ -68,11 +68,11 @@ struct OverlayView: View {
 
             VStack(spacing: 34) {
                 ZStack {
-                    StatusOrb(state: .armed, size: isFnHint ? 250 : 190, symbol: isFnHint ? "" : "bolt.fill")
-                        .opacity(isFnHint ? 0.55 : 1)
+                    StatusOrb(state: .armed, size: isFnHint ? 280 : 190, symbol: isFnHint ? "" : "bolt.fill")
+                        .opacity(isFnHint ? 0.5 : 1)
                     if isFnHint {
-                        LaptopGlyph(width: 150, animating: true)
-                            .offset(y: -6)
+                        LaptopGlyph(width: 220, animating: true)
+                            .offset(y: 4)
                     }
                 }
                 .scaleEffect(appear ? 1 : 0.7)

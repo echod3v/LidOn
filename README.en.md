@@ -35,16 +35,16 @@ Claude Code · Codex · Cursor · builds · downloads — no external display or
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ID/LidOn/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
 ```
 
 or with Homebrew:
 
 ```bash
-brew install --cask YOUR_GITHUB_ID/tap/lidon
+brew install --cask echod3v/tap/lidon
 ```
 
-or download `LidOn-x.y.z.zip` from [Releases](https://github.com/YOUR_GITHUB_ID/LidOn/releases).
+or download `LidOn-x.y.z.zip` from [Releases](https://github.com/echod3v/LidOn/releases).
 LidOn is not notarized, so on first launch open **System Settings → Privacy & Security** and click **Open Anyway**,
 or run `xattr -dr com.apple.quarantine /Applications/LidOn.app`.
 
@@ -65,7 +65,7 @@ lidon status [--json]
 Claude Code plugin (MCP server + skill):
 
 ```
-/plugin marketplace add YOUR_GITHUB_ID/LidOn
+/plugin marketplace add echod3v/LidOn
 /plugin install lidon@lidon
 ```
 

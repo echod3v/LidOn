@@ -58,28 +58,46 @@ let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { _
         .draw(in: NSBezierPath(ovalIn: NSRect(x: center.x - core, y: center.y - core, width: core * 2, height: core * 2)),
               relativeCenterPosition: NSPoint(x: -0.4, y: 0.4))
 
-    // 노트북: 화면
-    let screen = NSRect(x: center.x - 160, y: center.y - 40, width: 320, height: 205)
-    let screenPath = NSBezierPath(roundedRect: screen, xRadius: 20, yRadius: 20)
-    NSGradient(colors: [NSColor(white: 0.16, alpha: 1), NSColor(white: 0.06, alpha: 1)])!.draw(in: screenPath, angle: -90)
-    screenPath.lineWidth = 10
-    NSColor.white.withAlphaComponent(0.9).setStroke()
-    screenPath.stroke()
-    // 화면 속 "켜짐" 빛
+    // 맥북: 뚜껑(알루미늄 테두리 → 검은 베젤 → 배경화면 화면 → 노치)
+    let lidRect = NSRect(x: center.x - 190, y: center.y - 52, width: 380, height: 245)
+    let lidPath = NSBezierPath(roundedRect: lidRect, xRadius: 22, yRadius: 22)
+    NSGradient(colors: [NSColor(white: 0.90, alpha: 1), NSColor(white: 0.66, alpha: 1)])!.draw(in: lidPath, angle: -90)
+    let bezelRect = lidRect.insetBy(dx: 5, dy: 5)
+    NSColor(white: 0.04, alpha: 1).setFill()
+    NSBezierPath(roundedRect: bezelRect, xRadius: 18, yRadius: 18).fill()
+    let screenRect = NSRect(x: bezelRect.minX + 12, y: bezelRect.minY + 16, width: bezelRect.width - 24, height: bezelRect.height - 28)
+    let screenPath = NSBezierPath(roundedRect: screenRect, xRadius: 9, yRadius: 9)
     NSGraphicsContext.current?.saveGraphicsState()
-    let glow = NSShadow()
-    glow.shadowColor = mint
-    glow.shadowBlurRadius = 28
-    glow.set()
-    mint.setFill()
-    NSBezierPath(roundedRect: NSRect(x: center.x - 50, y: screen.midY - 8, width: 100, height: 16), xRadius: 8, yRadius: 8).fill()
+    screenPath.addClip()
+    NSGradient(colors: [NSColor(calibratedRed: 0.10, green: 0.10, blue: 0.30, alpha: 1), indigo, teal, mint])!
+        .draw(in: screenRect, angle: -35)
+    for (c, x, y, r) in [(mint, 0.72, 0.30, 150.0), (indigo, 0.25, 0.75, 130.0)] {
+        let p = NSPoint(x: screenRect.minX + screenRect.width * x, y: screenRect.minY + screenRect.height * y)
+        NSGradient(colors: [c.withAlphaComponent(0.75), c.withAlphaComponent(0)])!.draw(fromCenter: p, radius: 0, toCenter: p, radius: r, options: [])
+    }
+    // 가운데 "켜짐" 빛
+    let dot = NSPoint(x: screenRect.midX, y: screenRect.midY)
+    NSGradient(colors: [NSColor.white.withAlphaComponent(0.95), mint.withAlphaComponent(0.6), mint.withAlphaComponent(0)])!
+        .draw(fromCenter: dot, radius: 0, toCenter: dot, radius: 38, options: [])
+    // 유리 반사
+    NSGradient(colors: [NSColor.white.withAlphaComponent(0.2), NSColor.white.withAlphaComponent(0)])!.draw(in: screenRect, angle: -60)
     NSGraphicsContext.current?.restoreGraphicsState()
-    // 노트북: 본체
-    let base = NSRect(x: center.x - 205, y: center.y - 68, width: 410, height: 26)
-    NSGradient(colors: [NSColor.white, NSColor(white: 0.78, alpha: 1)])!
-        .draw(in: NSBezierPath(roundedRect: base, xRadius: 13, yRadius: 13), angle: -90)
-    NSColor.black.withAlphaComponent(0.25).setFill()
-    NSBezierPath(roundedRect: NSRect(x: center.x - 36, y: base.maxY - 9, width: 72, height: 7), xRadius: 3.5, yRadius: 3.5).fill()
+    // 노치
+    NSColor(white: 0.04, alpha: 1).setFill()
+    NSBezierPath(roundedRect: NSRect(x: center.x - 26, y: bezelRect.maxY - 16, width: 52, height: 16), xRadius: 6, yRadius: 6).fill()
+    NSBezierPath(rect: NSRect(x: center.x - 26, y: bezelRect.maxY - 8, width: 52, height: 8)).fill()
+    // 힌지
+    NSGradient(colors: [NSColor(white: 0.42, alpha: 1), NSColor(white: 0.22, alpha: 1)])!
+        .draw(in: NSRect(x: lidRect.minX + 12, y: lidRect.minY - 6, width: lidRect.width - 24, height: 6), angle: -90)
+    // 본체
+    let base = NSRect(x: center.x - 232, y: lidRect.minY - 30, width: 464, height: 24)
+    let basePath = NSBezierPath()
+    basePath.appendRoundedRect(base, xRadius: 12, yRadius: 12)
+    NSGradient(colors: [NSColor(white: 0.97, alpha: 1), NSColor(white: 0.74, alpha: 1), NSColor(white: 0.55, alpha: 1)])!
+        .draw(in: basePath, angle: -90)
+    // 손가락 홈
+    NSColor(white: 0.58, alpha: 1).setFill()
+    NSBezierPath(roundedRect: NSRect(x: center.x - 40, y: base.maxY - 8, width: 80, height: 8), xRadius: 4, yRadius: 4).fill()
 
     NSGraphicsContext.current?.restoreGraphicsState()
     return true

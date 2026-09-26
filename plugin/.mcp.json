@@ -4,7 +4,7 @@
       "command": "/bin/sh",
       "args": [
         "-c",
-        "for p in \"$(command -v lidon)\" /Applications/LidOn.app/Contents/Helpers/lidon \"$HOME/Applications/LidOn.app/Contents/Helpers/lidon\"; do [ -x \"$p\" ] && exec \"$p\" mcp; done; echo 'LidOn is not installed: https://github.com/YOUR_GITHUB_ID/LidOn' >&2; exit 1"
+        "for p in \"$(command -v lidon)\" /Applications/LidOn.app/Contents/Helpers/lidon \"$HOME/Applications/LidOn.app/Contents/Helpers/lidon\"; do [ -x \"$p\" ] && exec \"$p\" mcp; done; echo 'LidOn is not installed: https://github.com/echod3v/LidOn' >&2; exit 1"
       ]
     }
   }

@@ -41,7 +41,7 @@ Claude Code · Codex · Cursor · 빌드 · 다운로드 — 외부 모니터나
 **설치 스크립트 (권장)**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ID/LidOn/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/echod3v/LidOn/main/install.sh | bash
 ```
 
 `/Applications`에 설치하고 `lidon` 명령어를 연결한 뒤 실행해요.
@@ -49,12 +49,12 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ID/LidOn/main/install.s
 **Homebrew**
 
 ```bash
-brew install --cask YOUR_GITHUB_ID/tap/lidon
+brew install --cask echod3v/tap/lidon
 ```
 
 **직접 다운로드**
 
-[Releases](https://github.com/YOUR_GITHUB_ID/LidOn/releases)에서 `LidOn-x.y.z.zip`을 받아 압축을 풀고 응용 프로그램 폴더로 옮기세요.
+[Releases](https://github.com/echod3v/LidOn/releases)에서 `LidOn-x.y.z.zip`을 받아 압축을 풀고 응용 프로그램 폴더로 옮기세요.
 LidOn은 Apple 개발자 서명이 없는 무료 앱이라 처음 열 때 경고가 떠요. 아래 둘 중 하나로 허용하세요.
 
 - **시스템 설정 → 개인정보 보호 및 보안** 아래쪽에서 **"그래도 열기"** 클릭
@@ -110,7 +110,7 @@ LidOn은 에이전트가 일하는지 추측하지 않아요. 대신 **에이전
 **Claude Code — 플러그인 (MCP + 스킬)**
 
 ```
-/plugin marketplace add YOUR_GITHUB_ID/LidOn
+/plugin marketplace add echod3v/LidOn
 /plugin install lidon@lidon
 ```
 
