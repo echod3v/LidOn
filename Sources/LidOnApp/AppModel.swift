@@ -277,8 +277,10 @@ final class AppModel: ObservableObject {
         // 강력 모드: 뚜껑이 닫혀 실행 중인 동안만 macOS 잠자기 차단 스위치를 켠다
         let strong = want && engine.lidClosed && StrongMode.isInstalled
         if strong != strongActive {
+            // 명령을 기다리는 동안 런 루프가 돌아 apply()가 다시 불릴 수 있으므로 먼저 상태를 바꾼다
+            strongActive = strong
             let ok = StrongMode.set(strong)
-            strongActive = strong && ok
+            if strong && !ok { strongActive = false }
             EventLog.write("stronger mode \(strong ? "on" : "off") (ok=\(ok))")
         }
         updateSealTimer(want && engine.lidClosed)
