@@ -6,7 +6,9 @@ import IOKit.pwr_mgt
 ///
 /// `kPMSetClamshellSleepState`(selector 12)는 root 권한 없이 호출할 수 있지만,
 /// 호출한 프로세스가 죽어도 커널 상태가 **그대로 남는다**. 그래서 LidOn은 워치독 프로세스로 이를 복구한다.
-/// 또한 powerd가 같은 비트를 덮어쓸 수 있으므로(외부 디스플레이 연결/해제 등) 켜져 있는 동안 주기적으로 다시 적용한다.
+/// 또한 powerd가 같은 비트(kClamshellSleepDisablePowerd)를 덮어쓸 수 있으므로 켜져 있는 동안 주기적으로 다시 적용한다.
+/// 뚜껑이 닫힌 채 충전기·디스플레이가 연결되면 WindowServer가 잠깐 뚜껑 잠자기를 막았다가 풀고, 그때 powerd가 이 비트를 0으로 써서
+/// 커널이 곧바로 잠자기를 시작한다. 이 경우는 AppModel이 잠자기 직전(다크 웨이크)에서 붙잡는다.
 public final class LidControl {
     private static let kPMSetClamshellSleepState: UInt32 = 12
     /// iokit_family_msg(sub_iokit_powermanagement, 0x100)
@@ -45,6 +47,8 @@ public final class LidControl {
     public var hasLid: Bool { property("AppleClamshellState") != nil }
     /// 커널이 지금 뚜껑이 닫혀 있으면 잠들 것으로 보는가 (진단용)
     public var clamshellCausesSleep: Bool? { property("AppleClamshellCausesSleep") as? Bool }
+    /// 커널이 기록한 이번 잠자기 사유 (예: "Clamshell Sleep", "Thermal Emergency Sleep")
+    public var lastSleepReason: String? { property("Last Sleep Reason") as? String }
     public var isLidClosed: Bool { (property("AppleClamshellState") as? Bool) ?? false }
 
     private func property(_ key: String) -> Any? {

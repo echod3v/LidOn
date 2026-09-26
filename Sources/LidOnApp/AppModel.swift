@@ -370,9 +370,19 @@ final class AppModel: ObservableObject {
     }
 
     private func systemWillSleep() {
+        // 켜져 있는데 macOS가 "뚜껑 닫힘"을 이유로 재우려 한다 = powerd가 우리 비트를 덮어쓴 경우
+        // (뚜껑이 닫힌 채 충전기·디스플레이를 연결). 이 시점은 아직 다크 웨이크라 프로그램이 돌고 있다.
+        // 비트를 다시 켜고 시스템 잠자기 방지(전원 연결 시 유효)를 유지하면 커널이 실제 잠자기를 거부한다.
+        let reason = lid.lastSleepReason
+        if engine.isSealed, engine.lidClosed, reason == "Clamshell Sleep", PowerReader.read().onAC {
+            EventLog.write("macOS tried to sleep after a power/display change — keeping it awake")
+            lastAssert = .distantPast
+            apply()
+            return
+        }
         if engine.isSealed {
             // 켜져 있는데 잠들었다 — 원인을 찾을 수 있게 남긴다
-            EventLog.write("system sleeping while running: lidDisabled=\(lidSleepDisabled) ac=\(engine.power.onAC) causesSleep=\(lid.clamshellCausesSleep.map(String.init) ?? "?")")
+            EventLog.write("system sleeping while running: reason=\(reason ?? "?") lidDisabled=\(lidSleepDisabled) ac=\(engine.power.onAC) causesSleep=\(lid.clamshellCausesSleep.map(String.init) ?? "?")")
         }
         overlay.hide(animated: false)
         handle(engine.systemWillSleep(now: Date()))
